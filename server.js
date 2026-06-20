@@ -1,87 +1,69 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const path = require('path');
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// 🛡️ 1. เปิดสิทธิ์ CORS ให้หน้าเว็บยิงข้ามพอร์ตมาหา Node.js ได้อย่างอิสระ
-app.use(cors({
-    origin: '*', 
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// 📦 2. เปิดระบบอ่านข้อมูลทุกรูปแบบ (ป้องกันหน้าเว็บส่งข้อมูลมาผิดประเภท)
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.text({ type: '*/*' })); 
 
-// 🌐 3. สูตรแก้ปัญหา "Cannot GET" - บังคับให้เซิร์ฟเวอร์แชร์ไฟล์หน้าบ้านออกมาทำงานโดยตรง
-app.use(express.static(__dirname)); 
-
-// 🔑 4. คีย์ไลน์จริงของพี่จากโค้ดล่าสุด
+// 🔑 Token LINE OA ร้านแซ่บลืมผัวของพี่
 const LINE_ACCESS_TOKEN = "D9ExQrK4/2l62hPuPvnrxJnsNUoRogzAJTYQL8Tzr3U38WBPwJcUf26DceTDkG+qNSuJBVEI5E6d6z4qBcr5VOkwwN3wwk8IeWRc/agLjJzKTrG6S4Nren2ZBV4K5P9GeUg45AOA8VBFFY4hHfquXQdB04t89/1O/w1cDnyilFU=";
-const LINE_TARGET_ID = "Caf6de425fc6bacbf9afd71c27ffef7ea";
 
-// 📥 5. API รับออเดอร์ (เวอร์ชันแกะกล่องอย่างละเอียด)
+// 🆔 รหัสกลุ่มของพี่
+const LINE_TARGET_GROUP_ID = "Caf6de425fc6bacbf9afd71c27ffef7ea";
+
+// 🛍️ ด่านรับออเดอร์จากหน้าเว็บสั่งอาหาร (ปรับปรุงให้รองรับออเดอร์ที่มีราคาแยกรายการ)
 app.post('/api/order', async (req, res) => {
-    console.log("\n----------------------------------------");
-    console.log("🔔 [ALERT] มีสัญญาณออเดอร์ยิงเข้าเซิร์ฟเวอร์หลังบ้านแล้ว!");
-    console.log("📥 ข้อมูลดิบที่รับมา (Body):", req.body);
-    console.log("----------------------------------------\n");
-
     try {
-        let data = req.body;
+        const { customer, table, orders, totalCost } = req.body;
+
+        // ดักแปลงข้อมูล: ถ้าหน้าร้านส่งมาเป็น Array (มีราคาแยก) เราจะจัดรูปแบบให้สวยงาม
+        // แต่ถ้าหน้าร้านยังส่งมาเป็นข้อความแบบเดิม (Text) ก็จะใช้ข้อความเดิมได้ทันทีเพื่อไม่ให้ระบบเออร์เรอร์
+        let formattedOrders = '';
         
-        // ตรวจสอบแผนที่ 1: หากข้อมูลเข้ามาเป็นแบบ String ให้ช่วยแปลงเป็น Object
-        if (typeof data === 'string') {
-            try { 
-                data = JSON.parse(data); 
-            } catch (e) {
-                const querystring = require('querystring');
-                data = querystring.parse(data);
-            }
+        if (Array.isArray(orders)) {
+            formattedOrders = orders.map(item => {
+                // ปรับดีไซน์ข้อความ: ชื่อเมนู x จำนวนจาน (ราคาจานละ xx บาท)
+                return `- ${item.name} x ${item.quantity} จาน (จานละ ${item.price} บ.)`;
+            }).join('\n');
+        } else {
+            formattedOrders = orders; // รองรับรูปแบบข้อความดิบแบบเดิม
         }
 
-        // 🔍 ส่องและดักจับชื่อตัวแปรที่ส่งมาจากหน้าบ้าน index.html
-        const customerName = data.customer || data.customerName || data.name || "ไม่ระบุชื่อ";
-        const tableName = data.table || data.tableName || data.id || "-";
-        const orderDetails = data.orders || data.orderDetails || data.details || "ไม่มีรายละเอียดอาหาร";
-        const totalCost = data.totalCost || data.price || "0";
+        // จัดรูปแบบข้อความแจ้งเตือนใหม่ลงในไลน์กลุ่ม
+        const messageText = `🔥 มีออเดอร์ใหม่เข้าครัว! 🔥\n` +
+                            `📌 หมายเลขโต๊ะ: โต๊ะที่ ${table}\n` +
+                            `👤 ชื่อลูกค้า: คุณ ${customer}\n` +
+                            `-------------------------\n` +
+                            `${formattedOrders}\n` +
+                            `-------------------------\n` +
+                            `💰 ยอดสุทธิ: ${totalCost} บาท`;
 
-        // 📝 จัดข้อความที่จะส่งเข้า LINE ให้สวยงามเป็นระเบียบ
-        let messageText = `🔥 มีออเดอร์ใหม่เข้าครัว! 🔥\n` +
-                          `📌 หมายเลขโต๊ะ: ${tableName}\n` +
-                          `👤 ชื่อลูกค้า: คุณ ${customerName}\n` +
-                          `------------------\n` +
-                          `${orderDetails}\n` +
-                          `------------------\n` +
-                          `💰 ยอดสุทธิ: ${totalCost} บาท`;
-
-        // 🚀 ยิงข้อมูลตรงเข้าสู่ LINE API
+        // ยิงคำสั่งส่งข้อความเข้ากลุ่ม LINE
         await axios.post('https://api.line.me/v2/bot/message/push', {
-            to: LINE_TARGET_ID,
-            messages: [{ type: "text", text: messageText }]
+            to: LINE_TARGET_GROUP_ID,
+            messages: [{ type: 'text', text: messageText }]
         }, {
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
+                'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`,
+                'Content-Type': 'application/json'
             }
         });
 
-        console.log("✅ [LINE] ยิงข้อมูลออเดอร์เข้า LINE สำเร็จแล้ว!");
-        res.status(200).json({ status: "success", message: "ออเดอร์เด้งเข้าไลน์แล้วจ้า" });
+        console.log(`✅ [SUCCESS] ออเดอร์โต๊ะ ${table} ส่งเข้ากลุ่มเรียบร้อย!`);
+        res.status(200).json({ status: 'success', message: 'ส่งออเดอร์เข้ากลุ่มสำเร็จ' });
 
     } catch (error) {
-        console.error("❌ บั๊กฝั่ง LINE API บล็อกไว้:", error.response ? JSON.stringify(error.response.data) : error.message);
-        res.status(500).json({ status: "error", message: error.message });
+        console.error('❌ เกิดข้อผิดพลาดฝั่งส่งออเดอร์:', error.response ? error.response.data : error.message);
+        res.status(500).json({ status: 'error', message: 'ส่งออเดอร์ไม่สำเร็จ' });
     }
 });
 
-// เปิดประตูเซิร์ฟเวอร์รอดักข้อมูล
+app.post('/callback', (req, res) => {
+    res.sendStatus(200);
+});
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log("========================================");
-    console.log(`🚀 [SERVER ONLINE] หลังบ้านเปิดสแตนด์บายที่: http://127.0.0.1:${PORT}`);
-    console.log("========================================");
+    console.log(`🚀 [SERVER ONLINE] หลังบ้านรันบนพอร์ต: ${PORT}`);
 });
