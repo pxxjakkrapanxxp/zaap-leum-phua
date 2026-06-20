@@ -2002,7 +2002,8 @@ function sendOrderToKitchen() {
         return;
     }
 
-    var orderDetailsText = "";
+    // 🌟 ปรับใหม่: เปลี่ยนมาเก็บข้อมูลเป็น Array เพื่อส่งราคาจริงจากหน้าเว็บไปหลังบ้าน
+    var ordersArray = [];
     
     // 1. ดึงข้อมูลเมนูหลักที่สั่ง
     if (typeof orderCart !== 'undefined') {
@@ -2010,7 +2011,12 @@ function sendOrderToKitchen() {
             if (orderCart.hasOwnProperty(menuId) && orderCart[menuId].qty > 0) {
                 var item = orderCart[menuId];
                 var noteText = item.spicy ? ` (${item.spicy})` : '';
-                orderDetailsText += "- " + item.name + noteText + " x " + item.qty + " จาน\n";
+                
+                ordersArray.push({
+                    name: item.name + noteText,
+                    price: item.price || 0, // ส่งราคาต่อหน่วยจริงของเมนูนี้
+                    quantity: item.qty       // ส่งจำนวนจานจริง
+                });
             }
         }
     }
@@ -2019,22 +2025,28 @@ function sendOrderToKitchen() {
     if (typeof customMenuCart !== 'undefined' && customMenuCart.length > 0) {
         customMenuCart.forEach(function(item) {
             var noteText = item.spicy ? ` (${item.spicy})` : '';
-            orderDetailsText += "- " + item.name + noteText + " x " + item.qty + " จาน\n";
+            
+            ordersArray.push({
+                name: item.name + noteText,
+                price: item.price || 0, // ส่งราคาต่อหน่วยจริง
+                quantity: item.qty       // ส่งจำนวนจานจริง
+            });
         });
     }
 
-    if (orderDetailsText.trim() === "") {
+    if (ordersArray.length === 0) {
         alert("ยังไม่มีอาหารในตะกร้าเลยจ้า เลือกเมนูแซ่บๆ ก่อนนะ");
         return;
     }
 
-    // ยิงไปที่ Node.js พอร์ต 3000
+    // ยิงไปที่ Node.js พอร์ต 3000 บน Render ของพี่
     var localServerUrl = "https://zaap-leum-phua.onrender.com/api/order";
 
+    // 🌟 ส่งแบบโครงสร้างใหม่ แม่นยำ 100% ตลอดชีพ
     var payload = {
         customer: customerName,
         table: tableName,
-        orders: orderDetailsText.trim(),
+        orders: ordersArray, // ส่งเป็นวัตถุ Array ไม่ใช่ข้อความธรรมดาแล้ว
         totalCost: totalCost
     };
 
@@ -2070,7 +2082,7 @@ function sendOrderToKitchen() {
         location.reload();
     })
     .catch(function(error) {
-        alert("เกิดข้อผิดพลาด! กรุณาตรวจสอบว่าหน้าจอดำ Node.js ยังเปิดอยู่หรือไม่ครับ");
+        alert("เกิดข้อผิดพลาด! กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ตหรือเซิร์ฟเวอร์หลังบ้านครับ");
         if (confirmBtn) {
             confirmBtn.innerText = "ยืนยันสั่งอาหาร";
             confirmBtn.disabled = false;
