@@ -1071,6 +1071,97 @@
         let currentModalQty = 1;
         let currentActivePage = 2; 
 
+function sendOrderToKitchen() {
+    // 1. ดึงชื่อลูกค้า และ หมายเลขโต๊ะ จากหน้าจอสรุปออเดอร์
+    var customerName = document.getElementById("summaryCustomer").innerText;
+    var tableName = document.getElementById("summaryTable").innerText;
+    var totalCost = document.getElementById("summaryTotalCost").innerText;
+
+    // 2. ตรวจสอบข้อมูลเบื้องต้น
+    if (!customerName || !tableName) {
+        alert("กรุณากรอกข้อมูลชื่อและหมายเลขโต๊ะให้ครบถ้วนก่อนสั่งอาหารจ้า");
+        return;
+    }
+
+    // 3. รวมรายการอาหารในตะกร้าออกมาเป็นข้อความยาวๆ เพื่อส่งเข้า LINE
+    var orderDetailsText = "";
+    
+    // ดึงข้อมูลเมนูหลักที่สั่ง
+    for (var menuId in orderCart) {
+        if (orderCart.hasOwnProperty(menuId)) {
+            var item = orderCart[menuId];
+            orderDetailsText += "- " + item.name + " (" + item.spicy + ") x " + item.qty + " จาน\n";
+        }
+    }
+    
+    // ดึงข้อมูลเมนูพิเศษอื่นๆ (ถ้ามี)
+    if (typeof customMenuCart !== 'undefined' && customMenuCart.length > 0) {
+        customMenuCart.forEach(function(item) {
+            orderDetailsText += "- " + item.name + " (" + item.spicy + ") x " + item.qty + " จาน\n";
+        });
+    }
+
+    if (orderDetailsText === "") {
+        alert("ยังไม่มีอาหารในตะกร้าเลยจ้า เลือกเมนูแซ่บๆ ก่อนนะ");
+        return;
+    }
+
+    // 🌟 4. เปลี่ยนมาวิ่งเข้าหาเซิร์ฟเวอร์หลังบ้าน Node.js (พอร์ต 3000) ของพี่โดยตรง 🌟
+    var localServerUrl = "http://127.0.0.1:3000/api/order";
+
+    // จัดกลุ่มข้อมูลเตรียมส่งไปหลังบ้าน (แก้ไขตัวแปรให้ตรงกับความต้องการของสคริปต์หลังบ้าน)
+    var payload = {
+        customer: customerName,
+        table: tableName,
+        orders: orderDetailsText.trim(),
+        totalCost: totalCost
+    };
+
+    // แสดงแจ้งเตือนกำลังโหลด เพื่อไม่ให้ลูกค้ากดซ้ำ
+    var confirmBtn = document.querySelector(".btn-m-confirm");
+    confirmBtn.innerText = "⏳ กำลังส่งออเดอร์...";
+    confirmBtn.disabled = true;
+
+    // 5. ส่งข้อมูลไปที่หลังบ้าน Node.js -> ไปยัง LINE API
+    fetch(localServerUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(function(response) {
+        if (!response.ok) {
+            throw new Error("เซิร์ฟเวอร์หลังบ้านตอบกลับผิดพลาด");
+        }
+        return response.json();
+    })
+    .then(function(result) {
+        // เมื่อระบบ Node.js ปล่อยผ่านและส่งไลน์สำเร็จ
+        alert("🎉 ส่งออเดอร์เข้าครัวสำเร็จแล้วจ้า แซ่บลอนะคะ!");
+        
+        // เคลียร์ตะกร้าสินค้า
+        orderCart = {};
+        if (typeof customMenuCart !== 'undefined') customMenuCart = [];
+        
+        // ปิดหน้าต่างป๊อปอัพสรุปออเดอร์
+        closeSummaryPopup();
+        
+        // รีเซ็ตปุ่มกลับมาเหมือนเดิม
+        confirmBtn.innerText = "ยืนยันสั่งอาหาร";
+        confirmBtn.disabled = false;
+        
+        // บังคับอัปเดตหน้าจอเพื่อเคลียร์เลขออเดอร์คงค้าง (หากมีฟังก์ชันเดิมอยู่)
+        if (typeof updateCartUI === 'function') updateCartUI();
+    })
+    .catch(function(error) {
+        alert("เกิดข้อผิดพลาดในการส่งออเดอร์ กรุณาตรวจสอบว่าเปิดหน้าจอดำ Node.js รันอยู่หรือไม่ครับ");
+        confirmBtn.innerText = "ยืนยันสั่งอาหาร";
+        confirmBtn.disabled = false;
+        console.error("Error:", error);
+    });
+}
+
         const menuDatabase = {
             2: {
                 title: "เลือกรายการอาหาร (หน้าเมนูแนะนำ)",
@@ -1888,10 +1979,105 @@ const tableDropdown = document.getElementById('tableNumber');
             document.getElementById('summaryModal').style.display = 'none';
         }
 
-        function sendOrderToKitchen() {
-            alert("🔥 ส่งรายการออเดอร์เข้าห้องครัวเรียบร้อย! กรุณารอแซบได้เลยครับ");
-            location.reload();
+function sendOrderToKitchen() {
+    // ดักจับชื่อลูกค้าจากหน้าจอ
+    const nameInput = document.getElementById('custName') || document.getElementById('customerName');
+    var customerName = nameInput ? nameInput.value.trim() : "";
+    var tableName = document.getElementById("tableNumber") ? document.getElementById("tableNumber").value : "";
+    var totalCost = document.getElementById("total-cost") ? document.getElementById("total-cost").innerText : "0";
+
+    // หากดึงจากหน้าสรุป Popup
+    if (document.getElementById("summaryCustomer") && document.getElementById("summaryCustomer").innerText !== "") {
+        customerName = document.getElementById("summaryCustomer").innerText;
+    }
+    if (document.getElementById("summaryTable") && document.getElementById("summaryTable").innerText !== "") {
+        tableName = document.getElementById("summaryTable").innerText;
+    }
+    if (document.getElementById("summaryTotalCost") && document.getElementById("summaryTotalCost").innerText !== "0") {
+        totalCost = document.getElementById("summaryTotalCost").innerText;
+    }
+
+    if (!customerName || customerName === "ไม่ระบุชื่อ" || !tableName || tableName === "") {
+        alert("กรุณากรอกข้อมูลชื่อและหมายเลขโต๊ะให้ครบถ้วนก่อนสั่งอาหารจ้า");
+        return;
+    }
+
+    var orderDetailsText = "";
+    
+    // 1. ดึงข้อมูลเมนูหลักที่สั่ง
+    if (typeof orderCart !== 'undefined') {
+        for (var menuId in orderCart) {
+            if (orderCart.hasOwnProperty(menuId) && orderCart[menuId].qty > 0) {
+                var item = orderCart[menuId];
+                var noteText = item.spicy ? ` (${item.spicy})` : '';
+                orderDetailsText += "- " + item.name + noteText + " x " + item.qty + " จาน\n";
+            }
         }
+    }
+    
+    // 2. ดึงข้อมูลเมนูพิเศษอื่นๆ จาก Modal
+    if (typeof customMenuCart !== 'undefined' && customMenuCart.length > 0) {
+        customMenuCart.forEach(function(item) {
+            var noteText = item.spicy ? ` (${item.spicy})` : '';
+            orderDetailsText += "- " + item.name + noteText + " x " + item.qty + " จาน\n";
+        });
+    }
+
+    if (orderDetailsText.trim() === "") {
+        alert("ยังไม่มีอาหารในตะกร้าเลยจ้า เลือกเมนูแซ่บๆ ก่อนนะ");
+        return;
+    }
+
+    // ยิงไปที่ Node.js พอร์ต 3000
+    var localServerUrl = "https://zaap-leum-phua.onrender.com";
+
+    var payload = {
+        customer: customerName,
+        table: tableName,
+        orders: orderDetailsText.trim(),
+        totalCost: totalCost
+    };
+
+    // เปลี่ยนข้อความปุ่มเพื่อบอกสถานะลูกค้า
+    var confirmBtn = document.getElementById("submitOrderBtn") || document.querySelector(".btn-m-confirm");
+    if (confirmBtn) {
+        confirmBtn.innerText = "⏳ กำลังส่งออเดอร์...";
+        confirmBtn.disabled = true;
+    }
+
+    fetch(localServerUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(function(response) {
+        if (!response.ok) {
+            throw new Error("เซิร์ฟเวอร์หลังบ้านตอบกลับผิดพลาด");
+        }
+        return response.json();
+    })
+    .then(function(result) {
+        alert("🎉 ส่งออเดอร์เข้าครัวสำเร็จแล้วจ้า รอแซ่บนะคะ!");
+        if (typeof orderCart !== 'undefined') orderCart = {};
+        if (typeof customMenuCart !== 'undefined') customMenuCart = [];
+        
+        if (confirmBtn) {
+            confirmBtn.innerText = "ยืนยันสั่งอาหาร";
+            confirmBtn.disabled = false;
+        }
+        location.reload();
+    })
+    .catch(function(error) {
+        alert("เกิดข้อผิดพลาด! กรุณาตรวจสอบว่าหน้าจอดำ Node.js ยังเปิดอยู่หรือไม่ครับ");
+        if (confirmBtn) {
+            confirmBtn.innerText = "ยืนยันสั่งอาหาร";
+            confirmBtn.disabled = false;
+        }
+        console.error("Error:", error);
+    });
+}
   </script>
 </body>
 </html>
