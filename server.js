@@ -12,45 +12,49 @@ const LINE_ACCESS_TOKEN = "D9ExQrK4/2l62hPuPvnrxJnsNUoRogzAJTYQL8Tzr3U38WBPwJcUf
 // 🆔 รหัสกลุ่มของพี่
 const LINE_TARGET_GROUP_ID = "Caf6de425fc6bacbf9afd71c27ffef7ea";
 
-// ฟังก์ชันอัจฉริยะช่วยตรวจสอบและแนบราคาให้พ่อครัวดูปริมาณได้ถูกต้อง
-function appendPriceToItem(itemText) {
-    let text = itemText.trim();
+// 🕵️ ฟังก์ชันดักจับขนาดเมนู เพื่อต่อท้ายราคาแต่ละรายการให้พ่อครัวดูปริมาณ
+function appendPriceToItem(lineText) {
+    let text = lineText.trim();
     if (!text) return '';
-    
-    // ถ้าข้อความเดิมมีวงเล็บราคาระบุมาอยู่แล้ว ให้ส่งกลับไปเลย
-    if (text.includes('บาท') || text.includes('บ.')) {
-        return text;
+
+    // ลบสัญลักษณ์ขีด "-" ข้างหน้าออกชั่วคราวเพื่อเอาไปเช็กคำ
+    let cleanText = text.replace(/^-\s*/, '').trim();
+
+    // 1. ตรวจจับกลุ่มเมนู "ใหญ่" หรือ "(L)" หรือ "ตำถาด" -> ราคา 350 บาท
+    if (cleanText.includes('ใหญ่') || cleanText.includes('(L)') || cleanText.includes('ตำถาด')) {
+        return `- ${cleanText} [ราคา 350 บาท]`;
     }
 
-    // 1. กลุ่มเมนูแซลมอนและตำถาดใหญ่ (ราคา 350-299 บาท)
-    if (text.includes('ตำถาดบกทะเลแซลมอน ใหญ่') || text.includes('(L)')) {
-        return `${text} (350 บ.)`;
-    }
-    if (text.includes('แซลมอนไข่กุ้ง')) {
-        return `${text} (299 บ.)`;
+    // 2. ตรวจจับคำว่า "แซลมอน" (จานปกติ) -> ราคา 299 บาท
+    if (cleanText.includes('แซลมอน')) {
+        return `- ${cleanText} [ราคา 299 บาท]`;
     }
 
-    // 2. กลุ่มเมนูทะเลและเมนูพิเศษ (ราคา 150-180 บาท)
-    if (text.includes('เหลารวมทะเล') || text.includes('ต้มแซ่บรวมมิตร (ไม่มีทะเล) (พิเศษ)')) {
-        return `${text} (150 บ.)`;
+    // 3. ตรวจจับกลุ่มเมนูประเภทเหลา หรือประเภทโชว์คำว่า "(พิเศษ)" -> ราคา 150 บาท
+    if (cleanText.includes('(พิเศษ)') || cleanText.includes('เหลา')) {
+        return `- ${cleanText} [ราคา 150 บาท]`;
     }
 
-    // 3. กลุ่มอาหารจานเดียว / ของทอด / ตำปกติ (ราคา 60-80 บาท)
-    if (text.includes('เนื้อแดดเดียว') || text.includes('ยำหนังหมูโบราณ')) {
-        return `${text} (80 บ.)`;
-    }
-    if (text.includes('ตำข้าวโพด') || text.includes('ตำซั่ว')) {
-        return `${text} (60 บ.)`;
-    }
-    if (text.includes('ข้าวไข่ดาว')) {
-        return `${text} (50 บ.)`;
+    // 4. ตรวจจับกลุ่มเมนูของทอด / ยำ / ของทานเล่น -> ราคา 80 บาท
+    if (cleanText.includes('แดดเดียว') || cleanText.includes('ยำหนังหมู') || cleanText.includes('เนื้อ')) {
+        return `- ${cleanText} [ราคา 80 บาท]`;
     }
 
-    // ถ้าเป็นเมนูอื่นๆ นอกเหนือจากนี้ ให้ส่งข้อความเดิมออกไป
-    return text;
+    // 5. ตรวจจับกลุ่มส้มตำทั่วไปที่เป็นคำว่า "(ธรรมดา)" หรือตำปกติ -> ราคา 60 บาท
+    if (cleanText.includes('(ธรรมดา)') || cleanText.includes('ตำซั่ว') || cleanText.includes('ส้มตำ')) {
+        return `- ${cleanText} [ราคา 60 บาท]`;
+    }
+
+    // 6. ตรวจจับกลุ่มข้าว / ไข่ดาว -> ราคา 50 บาท
+    if (cleanText.includes('ข้าว') || cleanText.includes('ไข่ดาว')) {
+        return `- ${cleanText} [ราคา 50 บาท]`;
+    }
+
+    // ถ้าไม่ตรงกับเงื่อนไขด้านบนเลย ให้ส่งบรรทัดเดิมกลับไป
+    return text.startsWith('-') ? text : `- ${text}`;
 }
 
-// 🛍️ ด่านรับออเดอร์
+// 🛍️ ด่านรับออเดอร์เข้าครัว
 app.post('/api/order', async (req, res) => {
     try {
         const { customer, table, orders, totalCost } = req.body;
@@ -58,34 +62,28 @@ app.post('/api/order', async (req, res) => {
         let formattedOrders = '';
 
         if (Array.isArray(orders)) {
-            // กรณีหน้าร้านส่งมาเป็น Array วัตถุ
+            // รองรับถ้าหน้าร้านส่งข้อมูลมาเป็นรูปแบบโครงสร้างอ็อบเจกต์ (Array)
             formattedOrders = orders.map(item => {
-                let nameWithPrice = appendPriceToItem(item.name);
-                return `- ${nameWithPrice} x ${item.quantity} จาน`;
+                return appendPriceToItem(`${item.name} x ${item.quantity} จาน`);
             }).join('\n');
         } else if (typeof orders === 'string') {
-            // กรณีหน้าร้านส่งมาเป็นข้อความรวมยาวๆ (จากระบบเดิมของพี่)
-            // ระบบจะนำมาแยกบรรทัดแล้วห้อยราคารายรายการให้อัตโนมัติครับ
+            // รองรับการแกะข้อความยาวๆ แยกบรรทัด แล้วต่อท้ายราคาให้ทีละบรรทัดอัตโนมัติ
             formattedOrders = orders.split('\n')
-                .map(line => {
-                    let cleanLine = line.replace(/^-\s*/, '').trim();
-                    if (!cleanLine) return '';
-                    return `- ${appendPriceToItem(cleanLine)}`;
-                })
-                .filter(line => line !== '')
+                .map(line => appendPriceToItem(line))
+                .filter(line => line !== '- ' && line !== '')
                 .join('\n');
         }
 
-        // จัดรูปแบบข้อความส่งเข้า LINE
+        // 🌟 หน้าตาข้อความที่จะเด้งเข้ากลุ่ม LINE แบบที่พี่ต้องการเป๊ะ ๆ 🌟
         const messageText = `🔥 มีออเดอร์ใหม่เข้าครัว! 🔥\n` +
-                            `📌 หมายเลขโต๊ะ: ${table}\n` +
+                            `📌 หมายเลขโต๊ะ: ${table.includes('โต๊ะที่') ? table : 'โต๊ะที่ ' + table}\n` +
                             `👤 ชื่อลูกค้า: คุณ ${customer}\n` +
                             `-------------------------\n` +
                             `${formattedOrders}\n` +
                             `-------------------------\n` +
                             `💰 ยอดสุทธิ: ${totalCost} บาท`;
 
-        // ส่งข้อความเข้ากลุ่ม LINE
+        // สั่งยิงข้อความเข้าไลน์กลุ่มร้าน
         await axios.post('https://api.line.me/v2/bot/message/push', {
             to: LINE_TARGET_GROUP_ID,
             messages: [{ type: 'text', text: messageText }]
@@ -96,12 +94,12 @@ app.post('/api/order', async (req, res) => {
             }
         });
 
-        console.log(`✅ [SUCCESS] ส่งออเดอร์โต๊ะ ${table} โชว์ราคาต่อหน่วยเรียบร้อย!`);
+        console.log(`✅ [SUCCESS] ออเดอร์โต๊ะ ${table} ห้อยราคาหลังรายการเรียบร้อยแล้ว!`);
         res.status(200).json({ status: 'success', message: 'ส่งออเดอร์สำเร็จ' });
 
     } catch (error) {
-        console.error('❌ ข้อผิดพลาดฝั่งรับออเดอร์:', error.message);
-        res.status(500).json({ status: 'error', message: 'เกิดข้อผิดพลาดภายในระบบ' });
+        console.error('❌ ข้อผิดพลาดของระบบ:', error.message);
+        res.status(500).json({ status: 'error', message: 'เกิดข้อผิดพลาดภายในหลังบ้าน' });
     }
 });
 
@@ -109,8 +107,7 @@ app.post('/callback', (req, res) => {
     res.sendStatus(200);
 });
 
-// ตรวจสอบตำแหน่งรันโฟลเดอร์ป้องกันเออร์เรอร์บน Render
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 [SERVER ONLINE] ระบบเปิดสแตนด์บายที่พอร์ต: ${PORT}`);
+    console.log(`🚀 [SERVER ONLINE] ระบบเปิดสแตนด์บายรับออเดอร์ที่พอร์ต: ${PORT}`);
 });
