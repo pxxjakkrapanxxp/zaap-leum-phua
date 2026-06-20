@@ -1071,6 +1071,91 @@
         let currentModalQty = 1;
         let currentActivePage = 2; 
 
+function sendOrderToKitchen() {
+    // 1. ดึงชื่อลูกค้า และ หมายเลขโต๊ะ จากหน้าจอสรุปออเดอร์
+    var customerName = document.getElementById("summaryCustomer").innerText;
+    var tableName = document.getElementById("summaryTable").innerText;
+    var totalCost = document.getElementById("summaryTotalCost").innerText;
+
+    // 2. ตรวจสอบข้อมูลเบื้องต้น
+    if (!customerName || !tableName) {
+        alert("กรุณากรอกข้อมูลชื่อและหมายเลขโต๊ะให้ครบถ้วนก่อนสั่งอาหารจ้า");
+        return;
+    }
+
+    // 3. รวมรายการอาหารในตะกร้าออกมาเป็นข้อความยาวๆ เพื่อส่งเข้า LINE
+    var orderDetailsText = "";
+    
+    // ดึงข้อมูลเมนูหลักที่สั่ง
+    for (var menuId in orderCart) {
+        if (orderCart.hasOwnProperty(menuId)) {
+            var item = orderCart[menuId];
+            orderDetailsText += "- " + item.name + " (" + item.spicy + ") x " + item.qty + " จาน\n";
+        }
+    }
+    
+    // ดึงข้อมูลเมนูพิเศษอื่นๆ (ถ้ามี)
+    if (typeof customMenuCart !== 'undefined' && customMenuCart.length > 0) {
+        customMenuCart.forEach(function(item) {
+            orderDetailsText += "- " + item.name + " (" + item.spicy + ") x " + item.qty + " จาน\n";
+        });
+    }
+
+    if (orderDetailsText === "") {
+        alert("ยังไม่มีอาหารในตะกร้าเลยจ้า เลือกเมนูแซ่บๆ ก่อนนะ");
+        return;
+    }
+
+    // 🌟 4. วางลิงก์ Web App ที่ได้มาจาก Google Apps Script ตรงนี้ครับ 🌟
+    var googleScriptUrl = "https://script.google.com/macros/s/AKfycbzJc5DjDbd6_GWMcG3QTS_6mBvYM53TQT_KQqUxpYcfCHnS_V9q2CFe6d0XY5S0VcfC/exec";
+
+    // จัดกลุ่มข้อมูลเตรียมส่งไปหลังบ้าน
+    var payload = {
+        customer: customerName,
+        table: tableName,
+        orders: orderDetailsText.trim(),
+        totalCost: totalCost
+    };
+
+    // แสดงแจ้งเตือนกำลังโหลด เพื่อไม่ให้ลูกค้ากดซ้ำ
+    var confirmBtn = document.querySelector(".btn-m-confirm");
+    confirmBtn.innerText = "⏳ กำลังส่งออเดอร์...";
+    confirmBtn.disabled = true;
+
+    // 5. ส่งข้อมูลไปที่หลังบ้าน Google Sheets + LINE OA
+    fetch(googleScriptUrl, {
+        method: "POST",
+        mode: "no-cors", // ใช้ no-cors เพื่อให้สามารถยิงข้ามโดเมนจาก GitHub Pages ได้อย่างราบรื่น
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(function() {
+        // เนื่องจากใช้ mode: 'no-cors' จะไม่สามารถอ่านตัวหนังสือตอบกลับได้ แต่ถ้าทำงานเสร็จสิ้นจะวิ่งเข้าส่วนนี้ทันที
+        alert("🎉 ส่งออเดอร์เข้าครัวสำเร็จแล้วจ้า แซ่บลอนะคะ!");
+        
+        // เคลียร์ตะกร้าสินค้า
+        orderCart = {};
+        if (typeof customMenuCart !== 'undefined') customMenuCart = [];
+        
+        // ปิดหน้าต่างป๊อปอัพสรุปออเดอร์
+        closeSummaryPopup();
+        
+        // รีเซ็ตปุ่มกลับมาเหมือนเดิม
+        confirmBtn.innerText = "ยืนยันสั่งอาหาร";
+        confirmBtn.disabled = false;
+        
+        // (ถ้ามีฟังก์ชันอัปเดตหน้าจอหลักของตะกร้า เช่น updateCartUI() ให้ใส่ต่อท้ายตรงนี้ได้เลยครับ)
+    })
+    .catch(function(error) {
+        alert("เกิดข้อผิดพลาดในการส่งออเดอร์ กรุณาลองใหม่อีกครั้งครับ");
+        confirmBtn.innerText = "ยืนยันสั่งอาหาร";
+        confirmBtn.disabled = false;
+        console.error("Error:", error);
+    });
+}
+
         const menuDatabase = {
             2: {
                 title: "เลือกรายการอาหาร (หน้าเมนูแนะนำ)",
