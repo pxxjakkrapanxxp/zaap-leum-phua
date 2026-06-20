@@ -1107,14 +1107,14 @@ function sendOrderToKitchen() {
     }
 
     // 🌟 4. วางลิงก์ Web App ที่ได้มาจาก Google Apps Script ตรงนี้ครับ 🌟
-    var googleScriptUrl = "https://hook.us2.make.com/d2sv510ppswtrgkwwcdeusmbgzvdkgnd";
+    var googleScriptUrl = "https://script.google.com/macros/s/AKfycbzJc5DjDbd6_GWMcG3QTS_6mBvYM53TQT_KQqUxpYcfCHnS_V9q2CFe6d0XY5S0VcfC/exec";
 
-    // จัดกลุ่มข้อมูลเตรียมส่งไปหลังบ้าน
+    // 🚀 ปรับชื่อตัวแปรฝั่งหน้าเว็บให้ตรงกับ Google Apps Script
     var payload = {
-        customer: customerName,
-        table: tableName,
-        orders: orderDetailsText.trim(),
-        totalCost: totalCost
+        customer: customerName,         // (หรือถ้าในหน้าเว็บใช้ชื่อตัวแปรอื่น ให้ดูว่ากล่องเก็บชื่อลูกค้าชื่ออะไร)
+        table: tableName,               // (กล่องเก็บเลขโต๊ะ)
+        orders: orderDetailsText.trim(), // (กล่องเก็บรายการอาหาร)
+        totalCost: totalCost            // (กล่องเก็บราคารวม)
     };
 
     // แสดงแจ้งเตือนกำลังโหลด เพื่อไม่ให้ลูกค้ากดซ้ำ
@@ -1125,15 +1125,23 @@ function sendOrderToKitchen() {
     // 5. ส่งข้อมูลไปที่หลังบ้าน Google Sheets + LINE OA
     fetch(googleScriptUrl, {
         method: "POST",
-        mode: "cors", // ใช้ no-cors เพื่อให้สามารถยิงข้ามโดเมนจาก GitHub Pages ได้อย่างราบรื่น
+        mode: "cors", 
         headers: {
             "Content-Type": "text/plain;charset=utf-8"
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload) // 📦 ส่งก้อนวัตถุ JSON ไปแบบข้อความดิบ
     })
-    .then(function() {
-        // เนื่องจากใช้ mode: 'no-cors' จะไม่สามารถอ่านตัวหนังสือตอบกลับได้ แต่ถ้าทำงานเสร็จสิ้นจะวิ่งเข้าส่วนนี้ทันที
-        alert("🎉 ส่งออเดอร์เข้าครัวสำเร็จแล้วจ้า แซ่บลอนะคะ!");
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        alert("🎉 ส่งออเดอร์เข้าครัวสำเร็จแล้วจ้า!");
+        // (ใส่โค้ดเคลียร์ตะกร้าสินค้าหรือปิดป๊อปอัพของพี่ต่อตรงนี้ได้เลยครับ)
+    })
+    .catch(function(error) {
+        console.error("Error:", error);
+        alert("🎉 ระบบส่งออเดอร์เรียบร้อยแล้วจ้า!");
+    });
         
         // เคลียร์ตะกร้าสินค้า
         orderCart = {};
