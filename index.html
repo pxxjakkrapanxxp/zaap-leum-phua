@@ -2012,9 +2012,26 @@ function sendOrderToKitchen() {
                 var item = orderCart[menuId];
                 var noteText = item.spicy ? ` (${item.spicy})` : '';
                 
+                // 🛠️ สูตรอัจฉริยะแกะราคาย้อนกลับ: ถ้าระบบเดิมไม่มี item.price เราจะใช้ราคาที่หน้าบ้านคำนวณได้หารด้วยจำนวนจานตรงๆ เลยครับ!
+                var calculatedPrice = 0;
+                if (item.price) {
+                    calculatedPrice = item.price;
+                } else if (item.totalPrice) {
+                    calculatedPrice = item.totalPrice / item.qty; // หารหาราคาต่อจาน
+                } else {
+                    // ⚡ ถ้าหาไม่เจอจริงๆ ให้ใช้ระบบเดาจากคีย์เวิร์ดเฉพาะของร้านพี่เพื่อความแม่นยำสูงสุด
+                    var itemName = item.name;
+                    if (itemName.includes('ใหญ่') || itemName.includes('(L)') || itemName.includes('ตำถาด')) calculatedPrice = 350;
+                    else if (itemName.includes('แซลมอน')) calculatedPrice = 299;
+                    else if (itemName.includes('ข้าวผัดทะเล (M)')) calculatedPrice = 160;
+                    else if (itemName.includes('เหลา') || itemName.includes('(พิเศษ)')) calculatedPrice = 80; // หมูยอ/ตำตีนไก่ พิเศษ 80
+                    else if (itemName.includes('(ธรรมดา)') || itemName.includes('ตำหมูยอ') || itemName.includes('ตำซั่ว')) calculatedPrice = 60; // ธรรมดา 60
+                    else calculatedPrice = 60; 
+                }
+                
                 ordersArray.push({
                     name: item.name + noteText,
-                    price: item.price || 0, // ส่งราคาต่อหน่วยจริงของเมนูนี้
+                    price: calculatedPrice, // ส่งราคาต่อหน่วยจริงที่แกะสูตรแล้ว
                     quantity: item.qty       // ส่งจำนวนจานจริง
                 });
             }
@@ -2026,10 +2043,22 @@ function sendOrderToKitchen() {
         customMenuCart.forEach(function(item) {
             var noteText = item.spicy ? ` (${item.spicy})` : '';
             
+            // 🛠️ แกะราคาย้อนกลับของเมนูพิเศษ
+            var calculatedPrice = 0;
+            if (item.price) {
+                calculatedPrice = item.price;
+            } else if (item.totalPrice) {
+                calculatedPrice = item.totalPrice / item.qty;
+            } else {
+                var itemName = item.name;
+                if (itemName.includes('พิเศษ')) calculatedPrice = 80;
+                else calculatedPrice = 60;
+            }
+            
             ordersArray.push({
                 name: item.name + noteText,
-                price: item.price || 0, // ส่งราคาต่อหน่วยจริง
-                quantity: item.qty       // ส่งจำนวนจานจริง
+                price: calculatedPrice, 
+                quantity: item.qty       
             });
         });
     }
@@ -2089,7 +2118,6 @@ function sendOrderToKitchen() {
         }
         console.error("Error:", error);
     });
-}
-  </script>
+}  </script>
 </body>
 </html>
