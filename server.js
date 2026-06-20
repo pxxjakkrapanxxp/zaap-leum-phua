@@ -12,46 +12,60 @@ const LINE_ACCESS_TOKEN = "D9ExQrK4/2l62hPuPvnrxJnsNUoRogzAJTYQL8Tzr3U38WBPwJcUf
 // 🆔 รหัสกลุ่มของพี่
 const LINE_TARGET_GROUP_ID = "Caf6de425fc6bacbf9afd71c27ffef7ea";
 
-// 🕵️ ฟังก์ชันดักจับขนาดเมนู เพื่อต่อท้ายราคาแต่ละรายการให้พ่อครัวดูปริมาณ
+// 🕵️ ฟังก์ชันอัจฉริยะ แกะจำนวนจานมาคิดราคารายบรรทัดแยกตามที่พี่ต้องการ
 function appendPriceToItem(lineText) {
     let text = lineText.trim();
     if (!text) return '';
 
-    // ลบสัญลักษณ์ขีด "-" ข้างหน้าออกชั่วคราวเพื่อเอาไปเช็กคำ
+    // ลบสัญลักษณ์ขีด "-" ข้างหน้าออกชั่วคราวเพื่อเคลียร์ข้อความ
     let cleanText = text.replace(/^-\s*/, '').trim();
 
-    // 1. ตรวจจับกลุ่มเมนู "ใหญ่" หรือ "(L)" หรือ "ตำถาด" -> ราคา 350 บาท
+    // ดึงจำนวนจานจากข้อความ (ดักจับตัวเลขหลังตัว x หรือก่อนคำว่า จาน)
+    let quantity = 1; 
+    let matchQty = cleanText.match(/x\s*(\d+)/) || cleanText.match(/(\d+)\s*จาน/);
+    if (matchQty) {
+        quantity = parseInt(matchQty[1]);
+    }
+
+    // ลบคำว่า "x X จาน" ออกจากชื่อเมนูชั่วคราว เพื่อเอาชื่อเมนูล้วน ๆ ไปหากลุ่มราคา
+    let menuName = cleanText.replace(/x\s*\d+\s*จาน/, '').replace(/x\s*\d+/, '').replace(/\d+\s*จาน/, '').trim();
+
+    let pricePerUnit = 60; // ค่าเริ่มต้นถ้าไม่ตรงกับเมนูไหนเลย
+
+    // 1. กลุ่มเมนูใหญ่ / (L) / ตำถาด -> จานละ 350 บาท
     if (cleanText.includes('ใหญ่') || cleanText.includes('(L)') || cleanText.includes('ตำถาด')) {
-        return `- ${cleanText} [ราคา 350 บาท]`;
+        pricePerUnit = 350;
+    }
+    // 2. กลุ่มเมนูแซลมอนปกติ -> จานละ 299 บาท
+    else if (cleanText.includes('แซลมอน')) {
+        pricePerUnit = 299;
+    }
+    // 3. กลุ่มเมนูเหลา หรือ เมนูระบุชัดเจนว่า (พิเศษ) บางตัว -> จานละ 150 บาท
+    else if (cleanText.includes('เหลา') || cleanText.includes('หมึกกรอบ (พิเศษ)')) {
+        pricePerUnit = 150;
+    }
+    // 4. กลุ่มเมนูของทอด / ยำโบราณ -> จานละ 80 บาท
+    else if (cleanText.includes('แดดเดียว') || cleanText.includes('ยำหนังหมู') || cleanText.includes('เนื้อ')) {
+        pricePerUnit = 80;
+    }
+    // 5. ตำซั่ว (พิเศษ) ตามตัวอย่างของพี่ -> จานละ 50 บาท
+    else if (cleanText.includes('ตำซั่ว (พิเศษ)')) {
+        pricePerUnit = 50;
+    }
+    // 6. กลุ่มส้มตำทั่วไป / ตำซั่วปกติ / (ธรรมดา) -> จานละ 60 บาท
+    else if (cleanText.includes('(ธรรมดา)') || cleanText.includes('ตำซั่ว') || cleanText.includes('ส้มตำ')) {
+        pricePerUnit = 60;
+    }
+    // 7. กลุ่มข้าว / ไข่ดาว -> จานละ 50 บาท
+    else if (cleanText.includes('ข้าว') || cleanText.includes('ไข่ดาว')) {
+        pricePerUnit = 50;
     }
 
-    // 2. ตรวจจับคำว่า "แซลมอน" (จานปกติ) -> ราคา 299 บาท
-    if (cleanText.includes('แซลมอน')) {
-        return `- ${cleanText} [ราคา 299 บาท]`;
-    }
+    // คำนวณราคารวมของบรรทัดนั้น
+    let totalPriceForItem = pricePerUnit * quantity;
 
-    // 3. ตรวจจับกลุ่มเมนูประเภทเหลา หรือประเภทโชว์คำว่า "(พิเศษ)" -> ราคา 150 บาท
-    if (cleanText.includes('(พิเศษ)') || cleanText.includes('เหลา')) {
-        return `- ${cleanText} [ราคา 150 บาท]`;
-    }
-
-    // 4. ตรวจจับกลุ่มเมนูของทอด / ยำ / ของทานเล่น -> ราคา 80 บาท
-    if (cleanText.includes('แดดเดียว') || cleanText.includes('ยำหนังหมู') || cleanText.includes('เนื้อ')) {
-        return `- ${cleanText} [ราคา 80 บาท]`;
-    }
-
-    // 5. ตรวจจับกลุ่มส้มตำทั่วไปที่เป็นคำว่า "(ธรรมดา)" หรือตำปกติ -> ราคา 60 บาท
-    if (cleanText.includes('(ธรรมดา)') || cleanText.includes('ตำซั่ว') || cleanText.includes('ส้มตำ')) {
-        return `- ${cleanText} [ราคา 60 บาท]`;
-    }
-
-    // 6. ตรวจจับกลุ่มข้าว / ไข่ดาว -> ราคา 50 บาท
-    if (cleanText.includes('ข้าว') || cleanText.includes('ไข่ดาว')) {
-        return `- ${cleanText} [ราคา 50 บาท]`;
-    }
-
-    // ถ้าไม่ตรงกับเงื่อนไขด้านบนเลย ให้ส่งบรรทัดเดิมกลับไป
-    return text.startsWith('-') ? text : `- ${text}`;
+    // ส่งข้อความกลับไปในรูปแบบ: - [ชื่อเมนู] จานละ [ราคา] x [จำนวน] จาน [ราคา [รวม] บาท]
+    return `- ${menuName} จานละ ${pricePerUnit} x ${quantity} จาน [ราคา ${totalPriceForItem} บาท]`;
 }
 
 // 🛍️ ด่านรับออเดอร์เข้าครัว
@@ -62,19 +76,19 @@ app.post('/api/order', async (req, res) => {
         let formattedOrders = '';
 
         if (Array.isArray(orders)) {
-            // รองรับถ้าหน้าร้านส่งข้อมูลมาเป็นรูปแบบโครงสร้างอ็อบเจกต์ (Array)
+            // รองรับส่งมาเป็นโครงสร้างข้อมูล Array
             formattedOrders = orders.map(item => {
                 return appendPriceToItem(`${item.name} x ${item.quantity} จาน`);
             }).join('\n');
         } else if (typeof orders === 'string') {
-            // รองรับการแกะข้อความยาวๆ แยกบรรทัด แล้วต่อท้ายราคาให้ทีละบรรทัดอัตโนมัติ
+            // รองรับแกะจากข้อความดิบรวมยาว ๆ แยกบรรทัดให้เองอัตโนมัติ
             formattedOrders = orders.split('\n')
                 .map(line => appendPriceToItem(line))
-                .filter(line => line !== '- ' && line !== '')
+                .filter(line => line !== '' && !line.includes('-  จานละ'))
                 .join('\n');
         }
 
-        // 🌟 หน้าตาข้อความที่จะเด้งเข้ากลุ่ม LINE แบบที่พี่ต้องการเป๊ะ ๆ 🌟
+        // จัดอาร์ตเวิร์กข้อความยิงเข้า LINE ใหม่เอี่ยมตามบรีฟพี่เป๊ะ ๆ
         const messageText = `🔥 มีออเดอร์ใหม่เข้าครัว! 🔥\n` +
                             `📌 หมายเลขโต๊ะ: ${table.includes('โต๊ะที่') ? table : 'โต๊ะที่ ' + table}\n` +
                             `👤 ชื่อลูกค้า: คุณ ${customer}\n` +
@@ -94,12 +108,12 @@ app.post('/api/order', async (req, res) => {
             }
         });
 
-        console.log(`✅ [SUCCESS] ออเดอร์โต๊ะ ${table} ห้อยราคาหลังรายการเรียบร้อยแล้ว!`);
+        console.log(`✅ [SUCCESS] ออเดอร์โต๊ะ ${table} แสดงราคาแยกจานละเอียดเรียบร้อย!`);
         res.status(200).json({ status: 'success', message: 'ส่งออเดอร์สำเร็จ' });
 
     } catch (error) {
-        console.error('❌ ข้อผิดพลาดของระบบ:', error.message);
-        res.status(500).json({ status: 'error', message: 'เกิดข้อผิดพลาดภายในหลังบ้าน' });
+        console.error('❌ ข้อผิดพลาดหลังบ้าน:', error.message);
+        res.status(500).json({ status: 'error', message: 'เกิดข้อผิดพลาดภายในระบบหลังบ้าน' });
     }
 });
 
@@ -109,5 +123,5 @@ app.post('/callback', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 [SERVER ONLINE] ระบบเปิดสแตนด์บายรับออเดอร์ที่พอร์ต: ${PORT}`);
+    console.log(`🚀 [SERVER ONLINE] หลังบ้านร้านแซ่บลืมผัว สแตนด์บายที่พอร์ต: ${PORT}`);
 });
