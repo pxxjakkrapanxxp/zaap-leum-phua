@@ -35,13 +35,13 @@ app.post('/api/order', async (req, res) => {
         }
 
         // 🌟 รูปแบบข้อความเด้งเข้า LINE คำนวณยอดสุทธิตรงตามหน้าเว็บเป๊ะ ๆ
-        const messageText = `🔥 มีออเดอร์ใหม่เข้าครัว! 🔥\n` +
-                            `📌 หมายเลขโต๊ะ: ${table.includes('โต๊ะที่') ? table : 'โต๊ะที่ ' + table}\n` +
-                            `👤 ชื่อลูกค้า: คุณ ${customer}\n` +
-                            `🌶️🔥🌶️🔥🌶️🔥🌶️🔥🌶️\n` +
-                            `${formattedOrders}\n` +
-                            `🌶️🔥🌶️🔥🌶️🔥🌶️🔥🌶️\n` +
-                            `💰 ยอดสุทธิ: ${totalCost} บาท`;
+const messageText = `🔥 มีออเดอร์ใหม่เข้าครัว! 🔥\n` +
+                    `📌 หมายเลขโต๊ะ: ${table.includes('โต๊ะที่') ? table : 'โต๊ะที่ ' + table}\n` +
+                    `👤 ชื่อลูกค้า: คุณ ${customer}\n` +
+                    `🌶️🔥🌶️🔥🌶️🔥\n` +
+                    `${formattedOrders}\n` +
+                    `🌶️🔥🌶️🔥🌶️🔥\n` +
+                    `💰 ยอดสุทธิ: ${totalCost} บาท`;
 
         // ส่งข้อความแจ้งเตือนเข้า LINE กลุ่มร้าน
         await axios.post('https://api.line.me/v2/bot/message/push', {
