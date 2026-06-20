@@ -1,0 +1,1897 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>เจ้นึ่ง แซบลืมผัว - สมุดเมนูสั่งอาหาร</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+        :root {
+            --primary-color: #ff3838;
+            --dark-bg: #0d0d0d;
+            --card-bg: #1a1a1a;
+            --accent-color: #ffb300;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Kanit', sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+            /* ป้องกันการซูมหน้าจอแบบไม่ตั้งใจเมื่อกดปุ่มบนมือถือ */
+            touch-action: manipulation; 
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            margin: 0;
+            color: white;
+            /* ใช้ 100dvh เพื่อแก้ปัญหาแถบ URL หรือแถบนำทางของเบราว์เซอร์มือถือบังปุ่มด้านล่าง */
+            height: 100vh;
+            height: 100dvh; 
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ส่วนหัว: บังคับกรอกข้อมูล */
+        .top-bar {
+            background: var(--card-bg);
+            padding: 12px 15px;
+            border-bottom: 3px solid var(--primary-color);
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input, select {
+            background: #2b2b2b;
+            border: 1px solid #444;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            flex: 1;
+            font-size: 14px;
+            outline: none;
+            /* ลบดีไซน์เริ่มต้นของ iOS เพื่อให้แสดงผลเหมือนกันทุกเบราว์เซอร์ */
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary-color);
+        }
+
+        /* สำหรับช่องหมายเหตุที่ต้องการให้พิมพ์ข้อความยาวขึ้นได้สะดวก */
+        .form-input {
+            width: 100%;
+            background: #2b2b2b;
+            border: 1px solid #444;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        /* สมุดภาพสไลด์ */
+        .swiper {
+            width: 100%;
+            flex: 1;
+            background: #000;
+        }
+
+        .swiper-slide {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: #000;
+        }
+
+        /* โครงสร้างครอบรูปภาพเมนู - ปรับปรุงให้กระชับและสมส่วนบนจอมือถือแนวตั้ง */
+        .menu-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 450px; /* ขนาดกว้างสุดที่เหมาะกับหน้าจอมือถือทั่วไป */
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .menu-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* มั่นใจได้ว่าภาพเมนูจะไม่หลุดขอบหรือโดนครอบตัด */
+        }
+
+        /* ป้ายแจ้งเตือนลูกค้าให้จิ้มที่รูปภาพ */
+        .click-hint-banner {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 56, 56, 0.9);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 400;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 25;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.2);
+            pointer-events: none; /* เพื่อไม่ให้บังการจิ้มทะลุไปที่รูปข้างหลัง */
+        }
+
+        /* พื้นที่โปร่งใสครอบรูปภาพเมนูย่อยเพื่อกดสั่งงาน */
+        .hotspot-zone {
+            position: absolute;
+            cursor: pointer;
+            z-index: 5;
+        }
+
+        /* ปุ่มควบคุมจานอาหารหน้ารวม (หน้าแรก) */
+        .hotspot {
+            position: absolute;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+
+        .quantity-control {
+            display: flex; 
+            align-items: center;
+            background: rgba(0, 0, 0, 0.75);
+            padding: 6px 10px;
+            border-radius: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .btn-qty {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 13px;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.1s;
+        }
+        
+        .btn-minus { background: rgba(255, 255, 255, 0.2); }
+        .btn-plus { background: var(--primary-color); }
+        .btn-qty:active { transform: scale(0.85); }
+
+        .badge {
+            color: white;
+            min-width: 28px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 6px;
+        }
+
+        /* แถบสรุปเงินด้านล่าง - ปรับให้รองรับพื้นที่โค้ง/รอยบากของจอมือถือ (Safe Area) */
+        .bottom-bar {
+            background: var(--card-bg);
+            padding: 15px 20px calc(15px + env(safe-area-inset-bottom, 0px)) 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #2b2b2b;
+            z-index: 10;
+        }
+
+        .price-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .price-total {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2ecc71;
+        }
+
+        .btn-order-submit {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(255, 56, 56, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-order-submit:disabled {
+            background: #444;
+            color: #888;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .swipe-hint {
+            position: absolute;
+            right: 10px;
+            bottom: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            color: #aaa;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+      /* ==========================================================================
+           🔥 ปรับปรุงชุดนี้: หน้าต่างเลือกเมนูอาหาร (Modal) สไตล์ตำแซ่บนีออน
+           ========================================================================== */
+        
+        /* พื้นหลังดำโปร่งแสงตอนเปิดหน้าต่าง */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); /* ลดความทึบลงเล็กน้อยเพื่อให้เห็นสไลด์ภาพข้างหลัง */
+            backdrop-filter: blur(3px); /* เบลอหลังฉากให้ดูมิติระดับพรีเมียม */
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        /* ตัวกล่องการ์ดเลือกเมนูอาหาร */
+        .modal-card {
+            background: #161412; /* สีดำอมน้ำตาลไหม้ ฟีลครกดินเผา/ถ่านจุดเตาไก่ย่าง */
+            border-radius: 24px; /* มนรับกับมุมขอบหน้าจอมือถือยุคใหม่ */
+            width: 100%;
+            max-width: 350px; /* บีบกระชับให้พอดีอุ้งมือ สั่งงานมือเดียวสะดวก */
+            max-height: 75vh; /* 👑 ล็อกความสูงการ์ดไว้ไม่ให้เกะกะล้นหน้าจอ */
+            display: flex;
+            flex-direction: column;
+            border: 2px solid #ff3131; /* เส้นขอบแดงพริกสดสะท้อนแสง */
+            box-shadow: 0 15px 35px rgba(255, 49, 49, 0.3);
+            overflow: hidden; /* ล็อกหัวท้ายไม่ให้ส่วนโค้งเพี้ยน */
+        }
+
+        /* ส่วนหัวของการ์ดแสดงชื่อเมนู */
+        .modal-header {
+            background: linear-gradient(135deg, #ff3131, #ff7300); /* ไล่เฉดสีส้ม-แดงรสแซ่บ */
+            padding: 14px 18px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: none;
+        }
+
+        .close-modal {
+            background: rgba(0, 0, 0, 0.2);
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        .close-modal:active { background: rgba(0, 0, 0, 0.4); }
+
+        /* 👑 ส่วนเนื้อหาภายในที่เปิดให้ใช้นิ้วเลื่อนสไลด์ขึ้นลงได้ (ต้องครอบใน HTML) */
+        .modal-body {
+            padding: 16px 18px;
+            overflow-y: auto; /* เนื้อหายาวแค่ไหนก็เลื่อนดูข้างในได้ ปุ่มเพิ่มลงตะกร้าไม่มีทางหลุดจอ */
+            flex: 1;
+            -webkit-overflow-scrolling: touch; /* เลื่อนสไลด์ไหลลื่นบน iOS */
+        }
+
+        /* ปรับสไตล์ตัวหนังสือและฟิลด์ฟอร์มกรอกข้อมูล */
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: #ffb47e; /* สีส้มพาสเทลอ่อน อ่านง่าย ไม่ดุดันเกินไป */
+            margin-bottom: 6px;
+            margin-top: 14px;
+            font-weight: 500;
+        }
+        .form-label:first-child { margin-top: 0; }
+
+        .form-select, .form-input {
+            width: 100%;
+            background: #241f1c; /* สีกล่องอินพุตให้เข้ากับสีพื้นหลังการ์ด */
+            border: 1px solid #463b35;
+            color: white;
+            padding: 11px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-select:focus, .form-input:focus {
+            border-color: #ff7300; /* โฟกัสแล้วเปลี่ยนเป็นเส้นขอบส้มจี๊ด */
+        }
+
+        /* ปุ่มเลือกความเผ็ดสไตล์แท็บกลุ่ม */
+        .spicy-options {
+            display: flex;
+            gap: 6px;
+            margin-top: 5px;
+        }
+
+        .spicy-btn {
+            flex: 1;
+            padding: 10px 4px;
+            background: #241f1c;
+            border: 1px solid #463b35;
+            color: #ccc;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .spicy-btn.active {
+            background: #ff3131;
+            border-color: #ff3131;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(255, 49, 49, 0.4);
+        }
+
+        /* กล่องควบคุมจำนวนจานอาหาร (- 1 +) */
+        .modal-qty-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid #2d2622;
+        }
+
+        .modal-qty-control {
+            display: flex;
+            align-items: center;
+            background: #241f1c;
+            padding: 4px;
+            border-radius: 30px;
+            border: 1px solid #463b35;
+        }
+
+        .btn-qty-modal {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: #ff3131;
+            color: white;
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-qty-modal:active { transform: scale(0.9); }
+
+        .modal-qty-badge {
+            font-size: 16px;
+            font-weight: bold;
+            min-width: 40px;
+            text-align: center;
+            color: white;
+        }
+
+        /* รายการสินค้าออเดอร์กรณีใช้กับบิลสรุป */
+        .modal-list {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+
+        .modal-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed #3a322d;
+            font-size: 14px;
+            align-items: center;
+        }
+
+        /* ปุ่มคำสั่งต่างๆ */
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn-m {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        /* ปุ่มเขียวนีออนตัดกับตัวการ์ดเพื่อกระตุ้นการสั่งอาหาร */
+        .btn-m-add { 
+            background: linear-gradient(135deg, #00c853, #11b04c); 
+            color: white; 
+            width: 100%; 
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            margin-top: 18px;
+            box-shadow: 0 4px 12px rgba(0, 200, 83, 0.3);
+        }
+        .btn-m-add:active { transform: scale(0.98); }
+        .btn-m-back { background: #3a322d; color: #dcdcdc; }
+        .btn-m-confirm { 
+            background: linear-gradient(135deg, #00c853, #11b04c); 
+            color: white; 
+            box-shadow: 0 4px 12px rgba(0, 200, 83, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="input-group">
+            <input type="text" id="custName" placeholder="ระบุชื่อเล่นของคุณ *" oninput="validateOrderStatus()">
+            <select id="tableNumber" onchange="validateOrderStatus()">
+                <option value="">เลือกหมายเลขโต๊ะ *</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="swiper">
+        <div class="swiper-wrapper">
+            
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <img src="page0.jpg" onerror="this.src='https://placehold.co/500x700/222/fff?text=Page+0'">
+                    <div class="swipe-hint">ปัดซ้ายเพื่อดูเมนู <i class="fa-solid fa-arrow-right"></i></div>
+                </div>
+            </div>
+
+            <div class="swiper-slide">
+    <div class="menu-wrapper">
+        <img src="page1.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Page+1'">
+        
+        <div class="hotspot" style="top: 28%; left: 18%; width: 35%; height: 16%;" onclick="handleHotspotClick(event, 1, 'แซลมอนไข่กุ้ง+ศรีราชามาโย', 299)">
+            <div class="quantity-control" id="control-1">
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 1, -1, this, 'แซลมอนไข่กุ้ง+ศรีราชามาโย', 299)"><i class="fa-solid fa-minus"></i></button>
+                <span class="badge" id="badge-1">0</span>
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 1, 1, this, 'แซลมอนไข่กุ้ง+ศรีราชามาโย', 299)"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div class="spicy-inline-picker" onclick="event.stopPropagation()">
+                <select onchange="updateItemSpicy(1, this.value)" style="background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 11px; padding: 2px;">
+                    <option value="เผ็ดกลาง">🌶️ เผ็ดกลาง</option>
+                    <option value="ไม่เผ็ด">❌ ไม่เผ็ด</option>
+                    <option value="เผ็ดน้อย">🌶️ เผ็ดน้อย</option>
+                    <option value="เผ็ดมาก">🌶️🌶️ เผ็ดมาก</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="hotspot" style="top: 13%; left: 68%; width: 25%; height: 16%;" onclick="handleHotspotClick(event, 2, 'เหลามหาสมุทร', 390)">
+            <div class="quantity-control" id="control-2">
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 2, -1, this, 'เหลามหาสมุทร', 390)"><i class="fa-solid fa-minus"></i></button>
+                <span class="badge" id="badge-2">0</span>
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 2, 1, this, 'เหลามหาสมุทร', 390)"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div class="spicy-inline-picker" onclick="event.stopPropagation()">
+                <select onchange="updateItemSpicy(2, this.value)" style="background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 11px; padding: 2px;">
+                    <option value="เผ็ดกลาง">🌶️ เผ็ดกลาง</option>
+                    <option value="ไม่เผ็ด">❌ ไม่เผ็ด</option>
+                    <option value="เผ็ดน้อย">🌶️ เผ็ดน้อย</option>
+                    <option value="เผ็ดมาก">🌶️🌶️ เผ็ดมาก</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="hotspot" style="top: 47%; left: 70%; width: 25%; height: 16%;" onclick="handleHotspotClick(event, 3, 'ตำถาดบกทะเลแซลมอน ใหญ่', 350)">
+            <div class="quantity-control" id="control-3">
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 3, -1, this, 'ตำถาดบกทะเลแซลมอน ใหญ่', 350)"><i class="fa-solid fa-minus"></i></button>
+                <span class="badge" id="badge-3">0</span>
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 3, 1, this, 'ตำถาดบกทะเลแซลมอน ใหญ่', 350)"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div class="spicy-inline-picker" onclick="event.stopPropagation()">
+                <select onchange="updateItemSpicy(3, this.value)" style="background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 11px; padding: 2px;">
+                    <option value="เผ็ดกลาง">🌶️ เผ็ดกลาง</option>
+                    <option value="ไม่เผ็ด">❌ ไม่เผ็ด</option>
+                    <option value="เผ็ดน้อย">🌶️ เผ็ดน้อย</option>
+                    <option value="เผ็ดมาก">🌶️🌶️ เผ็ดมาก</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="hotspot" style="top: 66%; left: 19%; width: 35%; height: 16%;" onclick="handleHotspotClick(event, 8, 'เหลารวมทะเลแซลมอนไก่ต้ม', 350)">
+            <div class="quantity-control" id="control-8">
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 8, -1, this, 'เหลารวมทะเลแซลมอนไก่ต้ม', 350)"><i class="fa-solid fa-minus"></i></button>
+                <span class="badge" id="badge-8">0</span>
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 8, 1, this, 'เหลารวมทะเลแซลมอนไก่ต้ม', 350)"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div class="spicy-inline-picker" onclick="event.stopPropagation()">
+                <select onchange="updateItemSpicy(8, this.value)" style="background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 11px; padding: 2px;">
+                    <option value="เผ็ดกลาง">🌶️ เผ็ดกลาง</option>
+                    <option value="ไม่เผ็ด">❌ ไม่เผ็ด</option>
+                    <option value="เผ็ดน้อย">🌶️ เผ็ดน้อย</option>
+                    <option value="เผ็ดมาก">🌶️🌶️ เผ็ดมาก</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="hotspot" style="top: 78%; left: 72%; width: 25%; height: 16%;" onclick="handleHotspotClick(event, 9, 'เหลารวมทะเลแซลมอนแซ่บ', 250)">
+            <div class="quantity-control" id="control-9">
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 9, -1, this, 'เหลารวมทะเลแซลมอนแซ่บ', 250)"><i class="fa-solid fa-minus"></i></button>
+                <span class="badge" id="badge-9">0</span>
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 9, 1, this, 'เหลารวมทะเลแซลมอนแซ่บ', 250)"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div class="spicy-inline-picker" onclick="event.stopPropagation()">
+                <select onchange="updateItemSpicy(9, this.value)" style="background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; font-size: 11px; padding: 2px;">
+                    <option value="เผ็ดกลาง">🌶️ เผ็ดกลาง</option>
+                    <option value="ไม่เผ็ด">❌ ไม่เผ็ด</option>
+                    <option value="เผ็ดน้อย">🌶️ เผ็ดน้อย</option>
+                    <option value="เผ็ดมาก">🌶️🌶️ เผ็ดมาก</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- หน้า 2: หน้าเมนูอาหารจานเดียว / กับข้าว ตามภาพ image_202297.jpg -->
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <!-- ลบปุ่มสีแดงออก แล้วใส่ป้ายบอกลูกค้าแทน สามารถจิ้มตรงไหนของภาพก็ได้เพื่อสั่งงาน -->
+                    <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer"></i> จิ้มที่รูปภาพเมนูเพื่อสั่งอาหารหน้านี้ได้เลย</div>
+                    
+                    <img src="page2.jpg" onerror="this.src='https://placehold.co/500x700/ff3838/fff?text=image_202297.jpg'">
+                    
+                    <!-- หน้า 2 จิ้มตรงไหนบนแผ่นเมนูก็จะเปิดกล่องตัวเลือกเมนูขึ้นมาทันที -->
+                    <div class="hotspot-zone" style="top: 0%; left: 0%; width: 100%; height: 100%;" onclick="openMenuModal(2)"></div>
+                </div>
+            </div>
+
+<!-- หน้า 3: หน้าเมนูอาหารจานเดียว / กับข้าว ตามภาพ image_202297.jpg -->
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <!-- ลบปุ่มสีแดงออก แล้วใส่ป้ายบอกลูกค้าแทน สามารถจิ้มตรงไหนของภาพก็ได้เพื่อสั่งงาน -->
+                    <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer"></i> จิ้มที่รูปภาพเมนูเพื่อสั่งอาหารหน้านี้ได้เลย</div>
+                    
+                    <img src="page3.jpg" onerror="this.src='https://placehold.co/500x700/ff3838/fff?text=image_202297.jpg'">
+                    
+                    <!-- หน้า 3 จิ้มตรงไหนบนแผ่นเมนูก็จะเปิดกล่องตัวเลือกเมนูขึ้นมาทันที -->
+                    <div class="hotspot-zone" style="top: 0%; left: 0%; width: 100%; height: 100%;" onclick="openMenuModal(3)"></div>
+                </div>
+            </div>
+
+             <!-- หน้า 4: หน้าเมนูอาหารจานเดียว / กับข้าว ตามภาพ image_202297.jpg -->
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <!-- ลบปุ่มสีแดงออก แล้วใส่ป้ายบอกลูกค้าแทน สามารถจิ้มตรงไหนของภาพก็ได้เพื่อสั่งงาน -->
+                    <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer"></i> จิ้มที่รูปภาพเมนูเพื่อสั่งอาหารหน้านี้ได้เลย</div>
+                    
+                    <img src="page4.jpg" onerror="this.src='https://placehold.co/500x700/ff3838/fff?text=image_202297.jpg'">
+                    
+                    <!-- หน้า 4 จิ้มตรงไหนบนแผ่นเมนูก็จะเปิดกล่องตัวเลือกเมนูขึ้นมาทันที -->
+                    <div class="hotspot-zone" style="top: 0%; left: 0%; width: 100%; height: 100%;" onclick="openMenuModal(4)"></div>
+                </div>
+            </div>
+
+             <!-- หน้า 5: หน้าเมนูอาหารจานเดียว / กับข้าว ตามภาพ image_202297.jpg -->
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <!-- ลบปุ่มสีแดงออก แล้วใส่ป้ายบอกลูกค้าแทน สามารถจิ้มตรงไหนของภาพก็ได้เพื่อสั่งงาน -->
+                    <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer"></i> จิ้มที่รูปภาพเมนูเพื่อสั่งอาหารหน้านี้ได้เลย</div>
+                    
+                    <img src="page5.jpg" onerror="this.src='https://placehold.co/500x700/ff3838/fff?text=image_202297.jpg'">
+                    
+                    <!-- หน้า 5 จิ้มตรงไหนบนแผ่นเมนูก็จะเปิดกล่องตัวเลือกเมนูขึ้นมาทันที -->
+                    <div class="hotspot-zone" style="top: 0%; left: 0%; width: 100%; height: 100%;" onclick="openMenuModal(5)"></div>
+                </div>
+            </div>
+
+             <!-- หน้า 6: หน้าเมนูอาหารจานเดียว / กับข้าว ตามภาพ image_202297.jpg -->
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <!-- ลบปุ่มสีแดงออก แล้วใส่ป้ายบอกลูกค้าแทน สามารถจิ้มตรงไหนของภาพก็ได้เพื่อสั่งงาน -->
+                    <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer"></i> จิ้มที่รูปภาพเมนูเพื่อสั่งอาหารหน้านี้ได้เลย</div>
+                    
+                    <img src="page6.jpg" onerror="this.src='https://placehold.co/500x700/ff3838/fff?text=image_202297.jpg'">
+                    
+                    <!-- หน้า 6 จิ้มตรงไหนบนแผ่นเมนูก็จะเปิดกล่องตัวเลือกเมนูขึ้นมาทันที -->
+                    <div class="hotspot-zone" style="top: 0%; left: 0%; width: 100%; height: 100%;" onclick="openMenuModal(6)"></div>
+                </div>
+            </div>
+
+             <!-- หน้า 7: หน้าเมนูอาหารจานเดียว / กับข้าว ตามภาพ image_202297.jpg -->
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <!-- ลบปุ่มสีแดงออก แล้วใส่ป้ายบอกลูกค้าแทน สามารถจิ้มตรงไหนของภาพก็ได้เพื่อสั่งงาน -->
+                    <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer"></i> จิ้มที่รูปภาพเมนูเพื่อสั่งอาหารหน้านี้ได้เลย</div>
+                    
+                    <img src="page7.jpg" onerror="this.src='https://placehold.co/500x700/ff3838/fff?text=image_202297.jpg'">
+                    
+                    <!-- หน้า 7 จิ้มตรงไหนบนแผ่นเมนูก็จะเปิดกล่องตัวเลือกเมนูขึ้นมาทันที -->
+                    <div class="hotspot-zone" style="top: 0%; left: 0%; width: 100%; height: 100%;" onclick="openMenuModal(7)"></div>
+                </div>
+            </div>
+
+             <!-- หน้า 8: หน้าเมนูอาหารจานเดียว / กับข้าว ตามภาพ image_202297.jpg -->
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <!-- ลบปุ่มสีแดงออก แล้วใส่ป้ายบอกลูกค้าแทน สามารถจิ้มตรงไหนของภาพก็ได้เพื่อสั่งงาน -->
+                    <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer"></i> จิ้มที่รูปภาพเมนูเพื่อสั่งอาหารหน้านี้ได้เลย</div>
+                    
+                    <img src="page8.jpg" onerror="this.src='https://placehold.co/500x700/ff3838/fff?text=image_202297.jpg'">
+                    
+                    <!-- หน้า 8 จิ้มตรงไหนบนแผ่นเมนูก็จะเปิดกล่องตัวเลือกเมนูขึ้นมาทันที -->
+                    <div class="hotspot-zone" style="top: 0%; left: 0%; width: 100%; height: 100%;" onclick="openMenuModal(8)"></div>
+                </div>
+            </div>
+
+             <!-- หน้า 9: หน้าเมนูอาหารจานเดียว / กับข้าว ตามภาพ image_202297.jpg -->
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <!-- ลบปุ่มสีแดงออก แล้วใส่ป้ายบอกลูกค้าแทน สามารถจิ้มตรงไหนของภาพก็ได้เพื่อสั่งงาน -->
+                    <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer"></i> จิ้มที่รูปภาพเมนูเพื่อสั่งอาหารหน้านี้ได้เลย</div>
+                    
+                    <img src="page9.jpg" onerror="this.src='https://placehold.co/500x700/ff3838/fff?text=image_202297.jpg'">
+                    
+                    <!-- หน้า 9 จิ้มตรงไหนบนแผ่นเมนูก็จะเปิดกล่องตัวเลือกเมนูขึ้นมาทันที -->
+                    <div class="hotspot-zone" style="top: 0%; left: 0%; width: 100%; height: 100%;" onclick="openMenuModal(9)"></div>
+                </div>
+            </div>
+
+             <!-- หน้า 10: หน้าเมนูอาหารจานเดียว / กับข้าว ตามภาพ image_202297.jpg -->
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <!-- ลบปุ่มสีแดงออก แล้วใส่ป้ายบอกลูกค้าแทน สามารถจิ้มตรงไหนของภาพก็ได้เพื่อสั่งงาน -->
+                    <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer"></i> จิ้มที่รูปภาพเมนูเพื่อสั่งอาหารหน้านี้ได้เลย</div>
+                    
+                    <img src="page10.jpg" onerror="this.src='https://placehold.co/500x700/ff3838/fff?text=image_202297.jpg'">
+                    
+                    <!-- หน้า 10 จิ้มตรงไหนบนแผ่นเมนูก็จะเปิดกล่องตัวเลือกเมนูขึ้นมาทันที -->
+                    <div class="hotspot-zone" style="top: 0%; left: 0%; width: 100%; height: 100%;" onclick="openMenuModal(10)"></div>
+                </div>
+            </div>
+
+             <!-- หน้า 11: หน้าเมนูอาหารจานเดียว / กับข้าว ตามภาพ image_202297.jpg -->
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <!-- ลบปุ่มสีแดงออก แล้วใส่ป้ายบอกลูกค้าแทน สามารถจิ้มตรงไหนของภาพก็ได้เพื่อสั่งงาน -->
+                    <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer"></i> จิ้มที่รูปภาพเมนูเพื่อสั่งอาหารหน้านี้ได้เลย</div>
+                    
+                    <img src="page11.jpg" onerror="this.src='https://placehold.co/500x700/ff3838/fff?text=image_202297.jpg'">
+                    
+                    <!-- หน้า 11 จิ้มตรงไหนบนแผ่นเมนูก็จะเปิดกล่องตัวเลือกเมนูขึ้นมาทันที -->
+                    <div class="hotspot-zone" style="top: 0%; left: 0%; width: 100%; height: 100%;" onclick="openMenuModal(11)"></div>
+                </div>
+            </div>
+
+             <!-- หน้า 12: หน้าเมนูอาหารจานเดียว / กับข้าว ตามภาพ image_202297.jpg -->
+            <div class="swiper-slide">
+                <div class="menu-wrapper">
+                    <!-- ลบปุ่มสีแดงออก แล้วใส่ป้ายบอกลูกค้าแทน สามารถจิ้มตรงไหนของภาพก็ได้เพื่อสั่งงาน -->
+                    <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer"></i> จิ้มที่รูปภาพเมนูเพื่อสั่งอาหารหน้านี้ได้เลย</div>
+                    
+                    <img src="page12.jpg" onerror="this.src='https://placehold.co/500x700/ff3838/fff?text=image_202297.jpg'">
+                    
+                    <!-- หน้า 12 จิ้มตรงไหนบนแผ่นเมนูก็จะเปิดกล่องตัวเลือกเมนูขึ้นมาทันที -->
+                    <div class="hotspot-zone" style="top: 0%; left: 0%; width: 100%; height: 100%;" onclick="openMenuModal(12)"></div>
+                </div>
+            </div>
+
+<div class="swiper-slide">
+    <div class="menu-wrapper" style="position: relative;">
+        <img src="page13.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Menu+13'" style="width: 100%; display: block;">
+
+        <div class="hotspot" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+            
+            <div class="quantity-control" id="control-13" style="display: flex; align-items: center; background: #4a3024; padding: 5px 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 13, -1, this, 'โปรเซต 1', 230); event.preventDefault();" style="border: none; background: #33211a; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                
+                <span class="badge" id="badge-13" style="margin: 0 15px; font-weight: bold; color: white; font-size: 18px;">0</span>
+                
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 13, 1, this, 'โปรเซต 1', 230); event.preventDefault();" style="border: none; background: #ff4747; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<div class="swiper-slide">
+    <div class="menu-wrapper" style="position: relative;">
+        <img src="page14.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Menu+14'" style="width: 100%; display: block;">
+
+        <div class="hotspot" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+            
+            <div class="quantity-control" id="control-14" style="display: flex; align-items: center; background: #4a3024; padding: 5px 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 14, -1, this, 'โปรเซต 2', 320); event.preventDefault();" style="border: none; background: #33211a; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                
+                <span class="badge" id="badge-14" style="margin: 0 15px; font-weight: bold; color: white; font-size: 18px;">0</span>
+                
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 14, 1, this, 'โปรเซต 2', 320); event.preventDefault();" style="border: none; background: #ff4747; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+   <div class="swiper-slide">
+    <div class="menu-wrapper" style="position: relative;">
+        <img src="page15.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Menu+15'" style="width: 100%; display: block;">
+
+        <div class="hotspot" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+            
+            <div class="quantity-control" id="control-15" style="display: flex; align-items: center; background: #4a3024; padding: 5px 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 15, -1, this, 'โปรเซต 3', 340); event.preventDefault();" style="border: none; background: #33211a; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                
+                <span class="badge" id="badge-15" style="margin: 0 15px; font-weight: bold; color: white; font-size: 18px;">0</span>
+                
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 15, 1, this, 'โปรเซต 3', 340); event.preventDefault();" style="border: none; background: #ff4747; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+
+         <div class="swiper-slide">
+    <div class="menu-wrapper" style="position: relative;">
+        <img src="page16.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Menu+16'" style="width: 100%; display: block;">
+
+        <div class="hotspot" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+            
+            <div class="quantity-control" id="control-16" style="display: flex; align-items: center; background: #4a3024; padding: 5px 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 16, -1, this, 'โปรเซต 4', 390); event.preventDefault();" style="border: none; background: #33211a; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                
+                <span class="badge" id="badge-16" style="margin: 0 15px; font-weight: bold; color: white; font-size: 18px;">0</span>
+                
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 16, 1, this, 'โปรเซต 4', 390); event.preventDefault();" style="border: none; background: #ff4747; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+
+       <div class="swiper-slide">
+    <div class="menu-wrapper" style="position: relative;">
+        <img src="page17.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Menu+17'" style="width: 100%; display: block;">
+
+        <div class="hotspot" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+            
+            <div class="quantity-control" id="control-17" style="display: flex; align-items: center; background: #4a3024; padding: 5px 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 17, -1, this, 'โปรเซต 5', 510); event.preventDefault();" style="border: none; background: #33211a; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                
+                <span class="badge" id="badge-17" style="margin: 0 15px; font-weight: bold; color: white; font-size: 18px;">0</span>
+                
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 17, 1, this, 'โปรเซต 5', 510); event.preventDefault();" style="border: none; background: #ff4747; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+
+           <div class="swiper-slide">
+    <div class="menu-wrapper" style="position: relative;">
+        <img src="page18.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Menu+18'" style="width: 100%; display: block;">
+
+        <div class="hotspot" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+            
+            <div class="quantity-control" id="control-18" style="display: flex; align-items: center; background: #4a3024; padding: 5px 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 18, -1, this, 'โปรเซต 6', 540); event.preventDefault();" style="border: none; background: #33211a; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                
+                <span class="badge" id="badge-18" style="margin: 0 15px; font-weight: bold; color: white; font-size: 18px;">0</span>
+                
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 18, 1, this, 'โปรเซต 6', 540); event.preventDefault();" style="border: none; background: #ff4747; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+
+           <div class="swiper-slide">
+    <div class="menu-wrapper" style="position: relative;">
+        <img src="page19.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Menu+19'" style="width: 100%; display: block;">
+
+        <div class="hotspot" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+            
+            <div class="quantity-control" id="control-19" style="display: flex; align-items: center; background: #4a3024; padding: 5px 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 19, -1, this, 'โปรเซต 7', 540); event.preventDefault();" style="border: none; background: #33211a; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                
+                <span class="badge" id="badge-19" style="margin: 0 15px; font-weight: bold; color: white; font-size: 18px;">0</span>
+                
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 19, 1, this, 'โปรเซต 7', 540); event.preventDefault();" style="border: none; background: #ff4747; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+
+     <div class="swiper-slide">
+    <div class="menu-wrapper" style="position: relative;">
+        <img src="page20.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Menu+20'" style="width: 100%; display: block;">
+
+        <div class="hotspot" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+            
+            <div class="quantity-control" id="control-20" style="display: flex; align-items: center; background: #4a3024; padding: 5px 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 20, -1, this, 'โปรเซต 8', 640); event.preventDefault();" style="border: none; background: #33211a; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                
+                <span class="badge" id="badge-20" style="margin: 0 15px; font-weight: bold; color: white; font-size: 18px;">0</span>
+                
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 20, 1, this, 'โปรเซต 8', 640); event.preventDefault();" style="border: none; background: #ff4747; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+
+           <div class="swiper-slide">
+    <div class="menu-wrapper" style="position: relative;">
+        <img src="page21.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Menu+21'" style="width: 100%; display: block;">
+
+        <div class="hotspot" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+            
+            <div class="quantity-control" id="control-21" style="display: flex; align-items: center; background: #4a3024; padding: 5px 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 21, -1, this, 'โปรเซต 9', 710); event.preventDefault();" style="border: none; background: #33211a; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                
+                <span class="badge" id="badge-21" style="margin: 0 15px; font-weight: bold; color: white; font-size: 18px;">0</span>
+                
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 21, 1, this, 'โปรเซต 9', 710); event.preventDefault();" style="border: none; background: #ff4747; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+ <div class="swiper-slide">
+    <div class="menu-wrapper" style="position: relative;">
+        <img src="page22.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Menu+22'" style="width: 100%; display: block;">
+
+        <div class="hotspot" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+            
+            <div class="quantity-control" id="control-22" style="display: flex; align-items: center; background: #4a3024; padding: 5px 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 22, -1, this, 'โปรเซต 10', 830); event.preventDefault();" style="border: none; background: #33211a; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                
+                <span class="badge" id="badge-22" style="margin: 0 15px; font-weight: bold; color: white; font-size: 18px;">0</span>
+                
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 22, 1, this, 'โปรเซต 10', 830); event.preventDefault();" style="border: none; background: #ff4747; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+
+<div class="swiper-slide">
+    <div class="menu-wrapper" style="position: relative;">
+        <img src="page23.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Menu+23'" style="width: 100%; display: block;">
+
+        <div class="hotspot" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; pointer-events: auto;">
+            
+            <div class="quantity-control" id="control-23" style="display: flex; align-items: center; background: #4a3024; padding: 5px 10px; border-radius: 50px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);" onclick="event.stopPropagation()">
+                
+                <button class="btn-qty btn-minus" onclick="changeQty(event, 23, -1, this, 'โปรเซต 11', 999); event.preventDefault();" style="border: none; background: #33211a; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                
+                <span class="badge" id="badge-23" style="margin: 0 15px; font-weight: bold; color: white; font-size: 18px;">0</span>
+                
+                <button class="btn-qty btn-plus" onclick="changeQty(event, 23, 1, this, 'โปรเซต 11', 999); event.preventDefault();" style="border: none; background: #ff4747; color: white; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+ </div> <!-- ปิด swiper-wrapper ได้ถูกต้องพอดี -->
+        <div class="swiper-pagination" style="bottom:10px;"></div>
+    </div> <!-- ปิดคลาส swiper ตัวใหญ่ -->
+
+    <!-- แถบเมนูด้านล่างสุดคงเดิม ไม่เพี้ยนแล้วครับ -->
+    <div class="bottom-bar">
+        <div class="price-details">
+            <span style="font-size: 13px; color: #888;">สั่งรวมทั้งสิ้น <strong id="total-items">0</strong> จาน</span>
+            <span class="price-total">฿<span id="total-cost">0</span></span>
+        </div>
+        <button class="btn-order-submit" id="submitOrderBtn" disabled onclick="triggerSummaryPopup()">
+            <i class="fa-solid fa-paper-plane"></i> สั่งอาหาร
+        </button>
+    </div>
+
+  <div class="modal" id="menuModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <span id="modalHeaderTitle"><i class="fa-solid fa-list"></i> เลือกรายการอาหาร</span>
+                <button class="close-modal" onclick="closeMenuModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="modal-body">
+                <label class="form-label">เลือกเมนูอาหาร</label>
+                <select id="menuSelector" class="form-select" onchange="onMenuChange()">
+                    <option value="">-- เลือกเมนู --</option>
+                </select>
+
+                <label class="form-label">เลือกราคา</label>
+                <select id="priceSelector" class="form-select">
+                    <option value="">-- โปรดเลือกเมนูก่อน --</option>
+                </select>
+
+                <div class="form-group">
+                    <label class="form-label">✍️ หมายเหตุ (ระดับความเผ็ด / รสชาติที่ต้องการ)</label>
+                    <input type="text" id="customSpicyInput" class="form-input" placeholder="เช่น เผ็ดมาก/ไม่ปลาร้า, เผ็ดน้อย/ขอเปรี้ยวนำ..." oninput="setSpicyFromInput(this.value)">
+                </div>
+
+                <div class="modal-qty-section">
+                    <span style="font-weight:600; color: #fff;">จำนวนจาน:</span>
+                    <div class="modal-qty-control">
+                        <button class="btn-qty-modal" onclick="changeModalQty(-1)"><i class="fa-solid fa-minus"></i></button>
+                        <span class="modal-qty-badge" id="modalQtyContainer">1</span>
+                        <button class="btn-qty-modal" onclick="changeModalQty(1)"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                </div>
+
+                <button class="btn-m-add" onclick="addItemToCart()">🛒 เพิ่มลงตะกร้าสินค้า</button>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- บิลสรุปรายการสินค้า -->
+    <div class="modal" id="summaryModal">
+        <div class="modal-card">
+            <div class="modal-header"><i class="fa-solid fa-receipt"></i> สรุปออเดอร์เข้าครัว</div>
+            <div style="font-size:14px; color:#bbb; margin-bottom:12px;">
+                <p style="margin: 3px 0;"><strong>ผู้สั่ง:</strong> คุณ <span id="summaryCustomer"></span></p>
+                <p style="margin: 3px 0;"><strong>ตำแหน่ง:</strong> โต๊ะที่ <span id="summaryTable"></span></p>
+            </div>
+            <div class="modal-list" id="summaryListItems"></div>
+            <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:bold; margin-top:15px;">
+                <span>ยอดสุทธิ:</span>
+                <span style="color:#2ecc71;">฿<span id="summaryTotalCost">0</span></span>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-m btn-m-back" onclick="closeSummaryPopup()">กลับไปเลือกเพิ่ม</button>
+                <button class="btn-m btn-m-confirm" onclick="sendOrderToKitchen()">ยืนยันสั่งอาหาร</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script>
+        let orderCart = {}; 
+        let customMenuCart = []; 
+        
+        let finalCost = 0;
+        let finalQty = 0;
+        let chosenSpicy = "เผ็ดกลาง";
+        let currentModalQty = 1;
+        let currentActivePage = 2; 
+
+        const menuDatabase = {
+            2: {
+                title: "เลือกรายการอาหาร (หน้าเมนูแนะนำ)",
+                options: [
+                    { name: "ส้มตำไทย", prices: "40,50" },
+                    { name: "ตำสายบัว", prices: "40,50" },
+                    { name: "ตำปูปลาร้า", prices: "40,50" },
+                    { name: "ตำซั่ว", prices: "40,50" },
+                    { name: "ตำหลวงพระบางกะปิ", prices: "50" },
+                    { name: "ตำหน่อไม้", prices: "50" },
+                    { name: "ตำข้าวโพด", prices: "40,50" },
+                    { name: "ตำแตงกวา", prices: "40,50" },
+                    { name: "ตำแคบหมูหมูยอ", prices: "60,80" },
+                    { name: "ตำหมูยอ", prices: "60,80" },
+                    { name: "ตำหมึกกรอบ", prices: "60,80" },
+                    { name: "ตำหอยแมลงภู่", prices: "60,80" },
+                    { name: "ตำหมูยอหนัง(ป้าบี้)", prices: "70,100" },
+                    { name: "ตำแหนมหมู", prices: "70,100" },
+                    { name: "ตำสันคอหมูย่าง", prices: "70,100" },
+                    { name: "ตำตีนไก่", prices: "70,100" },
+                    { name: "ตำรวมทะเล(เล็ก)", prices: "150" },
+                    { name: "ตำรวมทะเล+แซลมอน", prices: "250,350" },
+                    { name: "ตำแซลมอนสด", prices: "100,150,200" },
+                    { name: "ตำกุ้งสด/สุก", prices: "70,100,150" },
+                    { name: "ตำปูม้าสด/สุก", prices: "70,100,150" },
+                    { name: "ตำปลาหมึก", prices: "50,70,150" },
+                    { name: "ตำแมงกะพรุน", prices: "50,70,100" },
+                    { name: "ตำหอยแครง", prices: "50,70,100" },
+                    { name: "ตำรวมเห็ดลวก", prices: "50,80" },
+                    { name: "ตำหน่อไม้(สับ)", prices: "50,80" },
+                    { name: "ตำสะโบ้นาง", prices: "70,100" },
+                    { name: "ตำไส้ตัน", prices: "70,100" }
+                ]
+            },
+            3: {
+                title: "เลือกรายการอาหาร (หน้าข้าวจานเดียว/กับข้าว)",
+                options: [
+                    { name: "ลาบหมูเห็ดเข็มทอง", prices: "60" },
+                    { name: "ข้าวไข่เจียวหมูสับ", prices: "60" },
+                    { name: "ข้าวไข่ดาว", prices: "60" },
+                    { name: "ข้าวไข่เจียวกุ้ง", prices: "70" },
+                    { name: "ข้าวไข่ข้นหมูสับ", prices: "60" },
+                    { name: "ข้าวไข่ข้นกุ้ง", prices: "70" },
+                    { name: "ข้าวผัดไข่", prices: "60" },
+                    { name: "ข้าวผัดหมู (S/M/L)", prices: "60,100,150" },
+                    { name: "ข้าวผัดกุ้ง (S/M/L)", prices: "70,120,180" },
+                    { name: "ข้าวผัดทะเล (S/M/L)", prices: "80,150,220" },
+                    { name: "ข้าวผัดหมู+ทะเล (M/L)", prices: "150,220" },
+                    { name: "ข้าวผัดแหนม", prices: "70" },
+                    { name: "ข้าวผัดกุนเชียงหมู", prices: "70" },
+                    { name: "ข้าวผัดเนื้อปลาแซลมอน", prices: "120" },
+                    { name: "ข้าวไข่ข้นปลาแซลมอน", prices: "120" },
+                    { name: "ไข่เจียวหมูสับ (กับข้าว)", prices: "60" },
+                    { name: "ไข่เจียวกุ้งสับ (กับข้าว)", prices: "70" },
+                    { name: "ไข่เจียวหอยแมลงภู่ (กับข้าว)", prices: "60" },
+                    { name: "ไข่ดาว+โซยุ", prices: "50" },
+                    { name: "ข้าวสวย (จาน)", prices: "10" },
+                    { name: "สันคอหมูย่าง+จิ้มแจ่ว", prices: "70" },
+                    { name: "น้ำตกสันคอหมูย่าง", prices: "80" },
+                    { name: "ตับหวาน", prices: "70" },
+                    { name: "ไข่หมึกนึ่งมะนาว", prices: "150" },
+                    { name: "ลาบอีสานหมู", prices: "60" },
+                    { name: "ลาบหนังหมู", prices: "60" },
+                    { name: "ลาบไข่ปลาหมึก", prices: "100" },
+                    { name: "ลาบไส้หวาน", prices: "80" },
+                    { name: "ลาบเอ็นไก่ทอดกรอบ", prices: "120" },
+                    { name: "ลาบปลาแซลมอน", prices: "120" },
+                    { name: "ลาบเห็ดกุ้งสุก", prices: "80" },
+                    { name: "เห็ดผัดน้ำมันหอย", prices: "60" },
+                    { name: "ผัดผักรวมมิตรกุ้ง", prices: "70" },
+                    { name: "ผัดหน่อไม้ไข่+หมูสับ", prices: "60" },
+                    { name: "ผัดแตงกวาไข่+หมูสับ", prices: "60" },
+                    { name: "กะหล่ำปลีผัดน้ำปลา", prices: "50" }
+                ]
+            },
+            4: {
+                title: "เลือกรายการอาหาร (หน้าเมนูยำแซ่บ)",
+                options: [
+                    { name: "ยำวุ้นเส้นโบราณ", prices: "70" },
+                    { name: "ยำไข่แดงเค็มหมูยอ", prices: "80" },
+                    { name: "ยำแหนมสดโบราณ", prices: "70" },
+                    { name: "ยำหนังหมูโบราณ", prices: "70" },
+                    { name: "ยำไส้ตันล้วน", prices: "70" },
+                    { name: "ยำสะใบนาง", prices: "70" },
+                    { name: "ยำเล็บมือนาง", prices: "70" },
+                    { name: "ยำไข่เยี่ยวม้าหมูสับ", prices: "60" },
+                    { name: "ยำหมูยอหนังป้าบี้", prices: "70,100" },
+                    { name: "ยำสะใบ+ไส้ตัน", prices: "100" },
+                    { name: "ยำมาม่าหมูล้น", prices: "70" },
+                    { name: "ยำวุ้นเส้นรวมมิตร", prices: "100" },
+                    { name: "ยำมาม่ารวมมิตร", prices: "100" },
+                    { name: "ยำเส้นแก้วรวมมิตร", prices: "100" },
+                    { name: "ยำเห็ดรวมมิตร", prices: "100" },
+                    { name: "ยำรวมมิตร (ไม่เส้น)", prices: "100" },
+                    { name: "ยำไส้ตันรวมมิตร", prices: "150" },
+                    { name: "ยำตะไคร้กุ้งสุก", prices: "100" },
+                    { name: "ยำตะไคร้คอหมูย่าง", prices: "100" },
+                    { name: "ยำตะไคร้แซลมอน", prices: "150" },
+                    { name: "ยำตะไคร้กุ้ง+แซล", prices: "150" },
+                    { name: "ยำตะไคร้หอยนางรม", prices: "120" }   
+                ]
+            },
+            5: {
+                title: "เลือกรายการอาหาร (หน้าเมนูทอดๆ)",
+                options: [
+                    { name: "สันคอหมูย่าง", prices: "70" },
+                    { name: "ไส้กรอกแดงทอด", prices: "60" },
+                    { name: "หมูยอทอด", prices: "60" },
+                    { name: "เฟรนช์ฟราย", prices: "70" },
+                    { name: "หมูแดดเดียว", prices: "100" },
+                    { name: "เนื้อแดดเดียว", prices: "120" },
+                    { name: "ปีกไก่ทอดน้ำปลา", prices: "80" },
+                    { name: "เอ็นไก่ทอดกรอบ", prices: "100" },
+                    { name: "แป้งนมหมูทอด", prices: "120" },
+            { name: "ปอเปี๊ยะกุ้ง", prices: "100" },
+            { name: "ปอเปี๊ยะแฮมชีส", prices: "100" },
+            { name: "ท้องปลาแซลมอนแดดเดียว", prices: "120" },
+            { name: "ไส้อ่อนทอดกระเทียม", prices: "100" },
+            { name: "ไส้ตันทอดกระเทียม", prices: "100" },
+            { name: "ตับหมูทอดกระเทียม", prices: "100" },
+            { name: "สามชั้นทอดน้ำปลา", prices: "120" },
+            { name: "ไข่หมึกทอดกระเทียม", prices: "120" }
+                ]
+            },
+            6: {
+                title: "เลือกรายการอาหาร (ตำถาด)",
+                options: [
+                    { name: "NO1", prices: "100" },
+                    { name: "NO2", prices: "140" },
+                    { name: "NO3", prices: "350" },
+                    { name: "NO4", prices: "180" },
+                    { name: "NO5", prices: "180" },
+                ]
+            },
+            7: {
+        title: "เลือกรายการอาหาร (หน้าต้มแซ่บ / ต้มยำ)",
+        options: [
+            // ฝั่งซ้าย (8 รายการ)
+            { name: "ต้มแซ่บกระดูกอ่อน", prices: "80,120" }, // ถ้วย 80, หม้อไฟ 120
+            { name: "ต้มยำปลาดอลลี่", prices: "80,120" },  // ถ้วย 80, หม้อไฟ 120
+            { name: "ซุปเปอร์ตีนไก่", prices: "80,120" },    // ถ้วย 80, หม้อไฟ 120
+            { name: "ต้มยำหัวปลาแซลฯ", prices: "100" },      // หม้อไฟ 100
+            { name: "เล้งกระดูกหมู", prices: "100" },        // หม้อไฟ 100
+            { name: "มาม่าหม้อไฟรวมฯ", prices: "150" },     // หม้อไฟ 150
+            { name: "ต้มยำเนื้อปลาแซลฯ", prices: "150,250" }, // ถ้วย 150, หม้อไฟ 250
+            { name: "ไข่ตุ๋นรวมมิตร", prices: "200" },       // หม้อไฟ 200
+
+            // ฝั่งขวา (8 รายการ)
+            { name: "ต้มยำไส้อ่อน", prices: "80,120" },      // ถ้วย 80, หม้อไฟ 120
+            { name: "ต้มยำกุ้งน้ำข้น/ใส", prices: "100,150" },   // ถ้วย 100, หม้อไฟ 150
+            { name: "ต้มยำทะเลรวมฯข้น/ใส", prices: "100,150" }, // ถ้วย 100, หม้อไฟ 150
+            { name: "ต้มยำไข่หมึกข้น/ใส", prices: "100,150" },  // ถ้วย 100, หม้อไฟ 150
+            { name: "ต้มยำปลาหมึกไข่", prices: "100,150" },   // ถ้วย 100, หม้อไฟ 150
+            { name: "ต้มจืดเต้าหู้หมูสับสาหร่าย", prices: "100" }, // ถ้วย 100
+            { name: "ต้มแซ่บรวมมิตร (ไม่มีทะเล)", prices: "100,150" }, // ถ้วย 100, หม้อไฟ 150
+            { name: "ต้มแซ่บเครื่องในรวมฯ", prices: "100,150" }   // ถ้วย 100, หม้อไฟ 150
+                ]
+            },
+            8: {
+        title: "เลือกรายการอาหาร (หน้าเมนูข้าวโพด / หลวงพระบาง / ตำซั่ว)",
+        options: [
+            // โซนรูปภาพแนะนำด้านบน (4 รายการ)
+            { name: "ตำซั่วโคราชปลากรอบ", prices: "80" },
+            { name: "ขนมจีนตีนไก่", prices: "100" },
+            { name: "ขนมจีนหมึกกรอบ", prices: "60" },
+            { name: "ขนมจีนสะใบนาง", prices: "80" },
+
+            // หมวดเมนูข้าวโพด (13 รายการ)
+            { name: "ตำข้าวโพด ไทย/ร้า", prices: "50" },
+            { name: "ตำข้าวโพดไข่เค็ม", prices: "60,80" },
+            { name: "ตำข้าวโพดไข่หมึก", prices: "100,150" },
+            { name: "ตำข้าวโพดหมูยอ", prices: "60" },
+            { name: "ตำข้าวโพดกุ้งสด", prices: "80,100,150" },
+            { name: "ตำข้าวโพดโคราชปลากรอบ", prices: "80" },
+            { name: "ตำข้าวโพดสายบัวกุ้งสด", prices: "80,100,150" },
+            { name: "ตำข้าวโพดมะละกอหมูยอ", prices: "60" },
+            { name: "ตำข้าวโพดหอยแครง", prices: "80,100,150" },
+            { name: "ตำข้าวโพดหมูยอไข่เค็ม", prices: "80,100" },
+            { name: "ตำข้าวโพดแซลมอน", prices: "100,150,200" },
+            { name: "ตำข้าวโพดรวมทะเล (เล็ก)", prices: "150" },
+            { name: "ตำข้าวโพดรวมทะเล+แซลมอน", prices: "250,350" },
+
+            // หมวดเมนูตำหลวงพระบาง (8 รายการ)
+            { name: "ตำหลวงพระบางกะปิ", prices: "50" },
+            { name: "ตำหลวงพระบางกะปิ+น้ำปู", prices: "60" },
+            { name: "ตำหลวงพระบาง+แคบหมู", prices: "60" },
+            { name: "ตำหลวงพระบางกุ้งสด", prices: "80,100" },
+            { name: "ตำหลวงพระบางกุ้งสด+แซลมอน", prices: "150,200" },
+            { name: "ตำหลวงพระบางแซลมอน", prices: "100,150,200" },
+            { name: "ตำหลวงพระบางรวมทะเล (เล็ก)", prices: "150" },
+            { name: "ตำหลวงพระบางรวมทะเล+แซลมอน", prices: "250,350" },
+
+            // หมวดเมนูตำขนมจีน/ตำซั่ว (11 รายการ)
+            { name: "ตำซั่ว (ไทย/ร้า)", prices: "50" },
+            { name: "ตำซั่วข้าวโพด (ไทย/ร้า)", prices: "50" },
+            { name: "ตำซั่วสายบัว (ไทย/ร้า)", prices: "50" },
+            { name: "ตำเส้นขนมจีนล้วน (ไทย/ร้า)", prices: "50" },
+            { name: "ตำซั่วหอยดอง", prices: "80" },
+            { name: "ตำขนมจีนหมูยอ", prices: "60" },
+            { name: "ตำซั่วกุ้งสดหอยดอง", prices: "100" },
+            { name: "ตำขนมจีนกุ้งสด", prices: "80,100" },
+            { name: "ตำซั่วแซลมอน", prices: "100,150,200" },
+            { name: "ตำซั่วรวมทะเล (เล็ก)", prices: "150" },
+            { name: "ตำซั่วรวมทะเล+แซลมอน", prices: "250,350" }
+                ]
+            },
+            9: {
+        title: "เลือกรายการอาหาร (หน้าตำเส้นเล็ก / มาม่า / ตำมะม่วง-สายบัว)",
+        options: [
+            // หมวดเมนูตำเส้นเล็ก
+            { name: "ตำเส้นเล็กแคบหมูหมูยอ", prices: "70" },
+            { name: "ตำเส้นเล็กไข่เยี่ยวม้า", prices: "80" },
+            { name: "ตำเส้นเล็กหมึกกรอบ", prices: "70" },
+            { name: "ตำเส้นเล็กหมูสามชั้นทอด", prices: "150" },
+            { name: "ตำเส้นเล็กกุ้งสด", prices: "80,100,150" },
+            { name: "ตำเส้นเล็กตีนไก่", prices: "80,100,150" },
+            { name: "ตำเส้นเล็กสันคอหมูย่าง", prices: "80,100,150" },
+            { name: "ตำเส้นเล็กหมูยอกุ้งสด", prices: "100,150" },
+            { name: "ตำเส้นเล็กตีนไก่กุ้งสด", prices: "100,150" },
+            { name: "ตำเส้นเล็กแซลมอน", prices: "100,150,200" },
+            { name: "ตำเส้นเล็กกุ้งสดแซลมอน", prices: "150,200" },
+            { name: "ตำเส้นเล็กรวมทะเล (เล็ก)", prices: "150" },
+            { name: "ตำเส้นเล็กรวมทะเล+แซลมอน", prices: "250,350" },
+
+            // หมวดเมนูมาม่าลวก / ดิบ
+            { name: "ตำไทยมาม่ากรอบ", prices: "50" },
+            { name: "ตำมาม่ากรอบแคบหมูหมูยอ", prices: "60" },
+            { name: "ตำมาม่ากรอบกุ้งสุก", prices: "80,100" },
+            { name: "ตำมาม่ากรอบแซลมอน", prices: "100,150,200" },
+            { name: "ตำมาม่ากรอบรวมทะเล (เล็ก)", prices: "150" },
+            { name: "ตำมาม่ากรอบรวมทะเล+แซลมอน", prices: "250,350" },
+
+            // หมวดเมนูตำมะม่วง / ตำสายบัว / ก้อยมะนาวสด
+            { name: "ตำสายบัวหมูยอ", prices: "70,100" },
+            { name: "ตำสายบัวกุ้งสด", prices: "80,100" },
+            { name: "ตำสายบัวแซลมอน", prices: "100,150,200" },
+            { name: "ตำสายบัวรวมทะเล (เล็ก)", prices: "150" },
+            { name: "ตำสายบัวรวมทะเล+แซลมอน", prices: "250,350" },
+            { name: "ตำมะม่วงกะปิปลากรอบ", prices: "80" },
+            { name: "ตำมะม่วงกุ้งสด", prices: "80,100,150" },
+            { name: "ตำมะม่วงปูม้า", prices: "100,150" },
+            { name: "ตำมะม่วงปูม้ากุ้งสด", prices: "150,200" },
+            { name: "ก้อยมะนาวหอยโข่ง", prices: "80" },
+            { name: "ก้อยมะนาวกุ้งสด", prices: "100" },
+            { name: "ก้อยมะนาวแซลมอน", prices: "150" },
+            { name: "ก้อยมะนาวกุ้งสดแซลมอน", prices: "150" }
+                ]
+            },
+            10: {
+        title: "เลือกรายการอาหาร (หน้าเมนูเหลาๆ / ผสมผสาน / ลวกจิ้ม)",
+        options: [
+            // หมวดเมนูเหลาๆ
+            { name: "เหลาแซลมอน", prices: "100,150,200" },
+            { name: "เหลากุ้งสด/สุก", prices: "100,150,200" },
+            { name: "เหลาปูม้า", prices: "100,150,200" },
+            { name: "เหลาแมงกะพรุน", prices: "100,150" },
+            { name: "เหลาปลาหมึก", prices: "100,150" },
+            { name: "เหลาหอยแครง", prices: "100,150,200" },
+            { name: "เหลาหอยนางรม", prices: "100" },
+            { name: "เหลาไข่หมึก", prices: "100,150,200" },
+            { name: "เหลาสันคอหมูย่าง", prices: "80,100,150" },
+            { name: "เหลาหมูสามชั้นทอด", prices: "150" },
+            { name: "เหลาตีนไก่", prices: "100,150,200" },
+            { name: "เหลารวมทะเล (เล็ก)", prices: "100,150,200" },
+            { name: "เหลารวมทะเล+แซลมอน", prices: "250,350" },
+
+            // หมวดเมนูเหลาผสมผสาน
+            { name: "เหลาปูม้า+กุ้งสด", prices: "100,150,200" },
+            { name: "เหลากุ้งสด+แซลมอน", prices: "100,150,200" },
+            { name: "เหลาไข่หมึก+กุ้งสด", prices: "100,150,200" },
+            { name: "เหลาตีนไก่+หมูยอ", prices: "100,150,200" },
+            { name: "เหลาหอยนางรม+แซลมอน", prices: "200" },
+            { name: "เหลากุ้งสด+หอยแครง+แซลมอน", prices: "150,250,300" },
+            { name: "เหลาปูม้า+กระพรุน+กุ้งสด", prices: "150,250,300" },
+            { name: "เหลาไข่หมึก+กุ้งสด+แซลมอน", prices: "150,250,300" },
+            { name: "เหลามหาสมุทร (ยกทะเล)", prices: "390" },
+
+            // หมวดลวกจิ้ม
+            { name: "กุ้งสดลวกจิ้ม", prices: "100" },
+            { name: "ตีนไก่ลวกจิ้ม", prices: "100" },
+            { name: "ไส้ตันลวกจิ้ม", prices: "100" },
+            { name: "ไข่หมึกลวกจิ้ม", prices: "100" },
+            { name: "ดอลลี่ลวกจิ้ม", prices: "100" },
+            { name: "หอยแครงลวกจิ้ม", prices: "100" },
+            { name: "หมูยอป้าปี้ลวกจิ้ม", prices: "100" },
+            { name: "กระพรุนลวกจิ้ม", prices: "100" },
+            { name: "ปูม้าลวกจิ้ม", prices: "100" },
+            { name: "รวมมิตรทะเลลวกจิ้ม", prices: "150" }
+                ]
+            },
+            11: {
+        title: "เลือกรายการอาหาร (หน้าเมนูตำป่า / ตำน้ำปู / ตำมั่ว)",
+        options: [
+            // หมวดเมนูตำป่า / ตำน้ำปู / ตำมั่ว
+            { name: "ตำป่าหมูยอ", prices: "60" },
+            { name: "ตำมั่วซั่ว", prices: "100" },
+            { name: "ตำมั่วซั่วรวมทะเล", prices: "150" },
+            { name: "ตำป่าหอยดอง", prices: "80,100,150" },
+            { name: "ตำหน่อไม้กุ้งสดน้ำปู", prices: "120" },
+            { name: "ตำหน่อไม้แซลมอนน้ำปู", prices: "150" },
+            { name: "ตำป่าตีนไก่", prices: "80,100,150" },
+            { name: "ตำป่ากุ้งสด", prices: "80,100,150" },
+            { name: "ตำป่ากุ้งสดตีนไก่", prices: "100,150" },
+            { name: "ตำป่าสันคอหมูย่าง", prices: "100,150" },
+            { name: "ตำป่าแซลมอน", prices: "150,200" },
+            { name: "ตำป่ารวมทะเล (เล็ก)", prices: "150" },
+            { name: "ตำป่ารวมทะเล+แซลมอน", prices: "250,350" },
+
+            // หมวดเมนูอาหารแนะนำ (ในรูปภาพ)
+            { name: "ตำป่าโคราช", prices: "80" },
+            { name: "ตำแตงกุ้งสุก", prices: "100" },
+            { name: "ยำไข่แดง+หมูยอ", prices: "80" },
+            { name: "ยำไส้หวาน", prices: "70" },
+            { name: "ลาบกุ้งสุก", prices: "100" },
+            { name: "เหลากุ้งสด", prices: "150" },
+            { name: "ตำป่าทะเล", prices: "150" },
+            { name: "เหลากุ้งทูโทน", prices: "150" },
+            { name: "เหลาไข่หมึก", prices: "150" },
+            { name: "ตำป่ากุ้งสดตีนไก่", prices: "150" },
+            { name: "ยำกระเจี๊ยบกุ้งสุก", prices: "80" },
+            { name: "กระเจี๊ยบน้ำมันหอย", prices: "60" },
+            { name: "ตำป่าตีนไก่", prices: "100" },
+            { name: "หน่อไม้+เห็ด+ตีน", prices: "100" }
+                ]
+            },
+            12: {
+        title: "เลือกรายการอาหาร (หน้าเมนูทะเลดอง / ท็อปปิ้ง / เครื่องดื่ม)",
+        options: [
+            // หมวดเมนูทะเลดอง
+            { name: "แซลมอนซาซิมิ", prices: "200,300" },
+            { name: "ปูอัดซาซิมิ", prices: "70" },
+            { name: "แซลมอนซาซิมิ+ปูอัด", prices: "200" },
+            { name: "กุ้งดองล้วน", prices: "100" },
+            { name: "แซลมอนดองล้วน", prices: "100" },
+            { name: "กุ้งผสมแซลดอง", prices: "100,200" },
+            { name: "เซตข้าว/สาหร่าย/กุ้งดอง", prices: "130" },
+            { name: "เซตข้าว/สาหร่าย/แซลดอง", prices: "130" },
+            { name: "เซตข้าว/สาหร่าย/กุ้ง+แซลดอง", prices: "230" },
+            { name: "สาหร่าย (ห่อ)", prices: "20" },
+            { name: "ข้าวสวย", prices: "10" },
+            { name: "ไข่กุ้ง", prices: "35" },
+            { name: "โชยุ + วาซาบิ (คู่)", prices: "10" },
+
+            // หมวด Topping (ท็อปปิ้ง / เครื่องเคียง)
+            { name: "ข้าวเหนียว (ห่อ)", prices: "10" },
+            { name: "ข้าวสวย (จาน)", prices: "10" },
+            { name: "ขนมจีน (จาน) / (เข่ง)", prices: "10,25" },
+            { name: "มาม่าลวก", prices: "10" },
+            { name: "เส้นแก้วลวก", prices: "10" },
+            { name: "เส้นเล็กลวกกระเทียมเจียว", prices: "20" },
+            { name: "เส้นหมี่ลวกกระเทียมเจียว", prices: "20" },
+            { name: "หมูยอลวก", prices: "20" },
+            { name: "ไข่เค็ม/ไข่เยี่ยวม้า (ฟอง)", prices: "15" },
+            { name: "ไข่แดงเค็ม (ฟอง)", prices: "15" },
+            { name: "แคบหมู (ห่อ)", prices: "15" },
+
+            // หมวดราคาเครื่องดื่ม (และของใช้)
+            { name: "น้ำแข็งฟรี!!! (ตักเองจ้า)", prices: "0" },
+            { name: "ทิชชู่ (ห่อ)", prices: "10" },
+            { name: "น้ำเปล่า (เล็ก) / (ใหญ่)", prices: "10,15" },
+            { name: "น้ำอัดลม (ทุกรสชาติ)", prices: "50" },
+            { name: "เบียร์ช้าง (ขวด) / (โปร)", prices: "70,210" },
+            { name: "เบียร์สิงห์ (ขวด) / (โปร)", prices: "80,160" },
+            { name: "โซจู (ทุกรสชาติ)", prices: "100" },
+            { name: "แสงโสม (แบน) / (กลม)", prices: "200,380" }
+                ]
+            },
+             13: {
+                title: "เลือกรายการอาหาร (Promotion!!)",
+                options: [
+                    { name: "โปรเชท 1", prices: "230" }
+                ]
+            },
+            14: {
+                title: "เลือกรายการอาหาร (Promotion!!)",
+                options: [
+                    { name: "โปรเชท 2", prices: "320" }
+                ]
+            },
+            15: {
+                title: "เลือกรายการอาหาร (Promotion!!)",
+                options: [
+                    { name: "โปรเชท 3", prices: "340" }
+                ]
+            },
+            16: {
+                title: "เลือกรายการอาหาร (Promotion!!)",
+                options: [
+                    { name: "โปรเชท 4", prices: "390" }
+                ]
+            },
+            17: {
+                title: "เลือกรายการอาหาร (Promotion!!)",
+                options: [
+                    { name: "โปรเชท 5", prices: "510" }
+                ]
+            },
+            18: {
+                title: "เลือกรายการอาหาร (Promotion!!)",
+                options: [
+                    { name: "โปรเชท 6", prices: "540" }
+                ]
+            },
+            19: {
+                title: "เลือกรายการอาหาร (Promotion!!)",
+                options: [
+                    { name: "โปรเชท 7", prices: "540" }
+                ]
+            },
+            20: {
+                title: "เลือกรายการอาหาร (Promotion!!)",
+                options: [
+                    { name: "โปรเชท 8", prices: "640" }
+                ]
+            },
+            21: {
+                title: "เลือกรายการอาหาร (Promotion!!)",
+                options: [
+                    { name: "โปรเชท 9", prices: "710" }
+                ]
+            },
+            22: {
+                title: "เลือกรายการอาหาร (Promotion!!)",
+                options: [
+                    { name: "โปรเชท 10", prices: "830" }
+                ]
+            },
+            23: {
+                title: "เลือกรายการอาหาร (Promotion!!)",
+                options: [
+                    { name: "โปรเชท 11", prices: "999" }
+                ]
+            }
+        };
+
+const tableDropdown = document.getElementById('tableNumber');
+        for (let i = 1; i <= 12; i++) {
+            let option = document.createElement('option');
+            option.value = i;
+            option.text = `นั่งโต๊ะที่ ${i}`;
+            tableDropdown.add(option);
+        }
+
+        const swiper = new Swiper('.swiper', {
+            effect: 'slide', 
+            speed: 300,      
+            preloadImages: false, 
+            lazy: { loadPrevNext: true },
+            loop: false,
+            pagination: { el: '.swiper-pagination', clickable: true },
+        });
+
+        // เปิดกล่องเลือกเมนูปกติ (สไลด์/หน้า Modal หลัก)
+        function openMenuModal(pageNumber) {
+            currentActivePage = pageNumber;
+            const config = menuDatabase[pageNumber];
+            
+            document.getElementById('modalHeaderTitle').innerHTML = `<i class="fa-solid fa-list"></i> ${config.title}`;
+            
+            const menuSelect = document.getElementById('menuSelector');
+            menuSelect.innerHTML = '<option value="">-- เลือกเมนู --</option>';
+            
+            config.options.forEach(item => {
+                let opt = document.createElement('option');
+                opt.value = item.name;
+                opt.setAttribute('data-prices', item.prices);
+                opt.text = `${item.name} (${item.prices.replace(/,/g, '/')}.-)`;
+                menuSelect.add(opt);
+            });
+
+            document.getElementById('priceSelector').innerHTML = '<option value="">-- โปรดเลือกเมนูก่อน --</option>';
+            
+            // ----------------------------------------------------
+            // แก้ไข: รีเซ็ตกล่องข้อความพิมพ์ระบุเองใน Modal ให้ว่างทุกครั้งที่เปิด
+            // ----------------------------------------------------
+            chosenSpicy = ""; // รีเซ็ตค่าตัวแปรเก็บรสชาติ/ความเผ็ดกลาง
+            
+            // ตรวจสอบทั้ง ID 'modalSpicyNote' หรือ 'customSpicyInput' เผื่อกรณีตั้งชื่อสลับกัน
+            const modalNoteInput = document.getElementById('customSpicyInput') || document.getElementById('modalSpicyNote');
+            if (modalNoteInput) {
+                modalNoteInput.value = "";
+            }
+            // ----------------------------------------------------
+
+            currentModalQty = 1;
+            document.getElementById('modalQtyContainer').innerText = currentModalQty;
+            document.getElementById('menuModal').style.display = 'flex';
+        }
+
+        // ฟังก์ชันอัปเกรด: จิ้มที่รูปภาพเมนูไหน จะดึงเมนูนั้นขึ้นมาเลือกให้อัตโนมัติทันที
+        function openMenuModalWithSelection(pageNumber, selectedMenuName) {
+            openMenuModal(pageNumber);
+            const menuSelect = document.getElementById('menuSelector');
+            menuSelect.value = selectedMenuName;
+            onMenuChange(); // สั่งให้คำนวณและแตกราคาตามขนาดทันที
+        }
+
+        function closeMenuModal() {
+            document.getElementById('menuModal').style.display = 'none';
+        }
+
+        function onMenuChange() {
+            const menuSelect = document.getElementById('menuSelector');
+            const priceSelect = document.getElementById('priceSelector');
+            const selectedOption = menuSelect.options[menuSelect.selectedIndex];
+            
+            priceSelect.innerHTML = "";
+            
+            if(!selectedOption || !selectedOption.value) {
+                priceSelect.innerHTML = '<option value="">-- โปรดเลือกเมนูก่อน --</option>';
+                return;
+            }
+
+            const prices = selectedOption.getAttribute('data-prices').split(',');
+            const sizeLabels = prices.length === 3 ? ['ไซส์ S', 'ไซส์ M', 'ไซส์ L'] : prices.length === 2 ? ['จานปกติ', 'พิเศษ/จานใหญ่'] : [];
+
+            prices.forEach((price, index) => {
+                let opt = document.createElement('option');
+                opt.value = price;
+                let labelSuffix = sizeLabels[index] ? ` (${sizeLabels[index]})` : '';
+                opt.text = `${price} บาท${labelSuffix}`;
+                priceSelect.add(opt);
+            });
+        }
+
+        // ฟังก์ชันอัปเดตหมายเหตุจากหน้า Modal เมื่อลูกค้าพิมพ์ข้อความ
+        function setSpicyFromInput(textValue) {
+            chosenSpicy = textValue.trim();
+        }
+
+        function changeModalQty(amount) {
+            currentModalQty += amount;
+            if(currentModalQty < 1) currentModalQty = 1;
+            document.getElementById('modalQtyContainer').innerText = currentModalQty;
+        }
+
+        function addItemToCart() {
+            const menuName = document.getElementById('menuSelector').value;
+            const menuPrice = parseInt(document.getElementById('priceSelector').value);
+
+            if(!menuName || !menuPrice) {
+                alert("กรุณาเลือกเมนูและราคาให้ครบถ้วนด้วยครับ");
+                return;
+            }
+
+            let displayName = menuName;
+            const menuSelect = document.getElementById('menuSelector');
+            const selectedOption = menuSelect.options[menuSelect.selectedIndex];
+            const allPrices = selectedOption.getAttribute('data-prices').split(',');
+            if (allPrices.length === 3) {
+                const idx = allPrices.indexOf(menuPrice.toString());
+                const sizes = ['S', 'M', 'L'];
+                if(idx !== -1) displayName = `${menuName.replace(" (S/M/L)", "")} (${sizes[idx]})`;
+            } else if (allPrices.length === 2) {
+                const idx = allPrices.indexOf(menuPrice.toString());
+                const sizes = ['ธรรมดา', 'พิเศษ'];
+                if(idx !== -1) displayName = `${menuName} (${sizes[idx]})`;
+            }
+
+            // ค้นหาว่ามีรายการที่ชื่อ ราคา และ หมายเหตุ ตรงกันเป๊ะๆ ไหม ถ้ามีให้บวกจำนวนเพิ่ม
+            let existingItem = customMenuCart.find(item => item.name === displayName && item.price === menuPrice && item.spicy === chosenSpicy);
+            if(existingItem) {
+                existingItem.qty += currentModalQty;
+            } else {
+                customMenuCart.push({
+                    name: displayName,
+                    price: menuPrice,
+                    spicy: chosenSpicy, 
+                    qty: currentModalQty
+                });
+            }
+
+            closeMenuModal();
+            refreshAllTotals();
+        }
+
+        function handleHotspotClick(e, id, name, price) {
+            initCartItem(id, name, price);
+        }
+
+        function initCartItem(id, name, price) {
+            let parsedPrice = parseInt(price);
+            if (isNaN(parsedPrice)) parsedPrice = 0;
+
+            if (!orderCart[id]) {
+                orderCart[id] = { name: name, price: parsedPrice, qty: 0, spicy: "" };
+            } else if (orderCart[id].price === 0 && parsedPrice > 0) {
+                orderCart[id].price = parsedPrice;
+            }
+        }
+
+        // ฟังก์ชันอัปเดตหมายเหตุแบบพิมพ์ระบุฟรีสไตล์จากเมนูบนหน้าสไลด์หลัก
+        function updateItemSpicy(id, noteText) {
+            if (!orderCart[id]) {
+                orderCart[id] = { name: "รายการอาหาร", price: 0, qty: 0, spicy: "" };
+            }
+            orderCart[id].spicy = noteText.trim();
+            refreshAllTotals();
+        }
+
+        // ✅ ปรับปรุงฟังก์ชันเปลี่ยนจำนวนสินค้า (ตัดปัญหาราคาบั๊ก และอัปเดต Badge แยกตามไอดีสไลด์จริง)
+        function changeQty(e, id, amount, button, fallbackName, fallbackPrice) {
+            if (e) e.stopPropagation(); 
+            
+            let name = fallbackName || "";
+            let price = parseInt(fallbackPrice) || 0;
+
+            if (button && price === 0) {
+                const hostEl = button.closest('.hotspot');
+                if (hostEl) {
+                    const clickAttr = hostEl.getAttribute('onclick');
+                    if (clickAttr) {
+                        const matches = clickAttr.match(/['"](.*?)['"]\s*,\s*(\d+)/);
+                        if (matches) {
+                            if (!name) name = matches[1];
+                            price = parseInt(matches[2]);
+                        }
+                    }
+                }
+            }
+
+            if (!name) name = orderCart[id] ? orderCart[id].name : "รายการอาหารแบบเซต";
+
+            // ปรับปรุงการตรวจสอบและบันทึกข้อมูลเข้าตะกร้าหลักแยกตาม ID จริง
+            if (!orderCart[id]) {
+                orderCart[id] = { name: name, price: price, qty: 0, spicy: "" };
+            } else {
+                if (orderCart[id].price === 0 && price > 0) {
+                    orderCart[id].price = price;
+                }
+            }
+
+            orderCart[id].qty += amount;
+            if (orderCart[id].qty < 0) orderCart[id].qty = 0;
+            
+            // อัปเดตตัวเลขบนหน้าจอโดยอิงจาก ID จริงของสไลด์หน้านั้นๆ ไม่ให้ค่าทับกัน
+            const targetBadge = document.getElementById(`badge-${id}`);
+            if (targetBadge) {
+                targetBadge.innerText = orderCart[id].qty;
+            } else if (button) {
+                const parentControl = button.closest('.quantity-control');
+                const badgeEl = parentControl ? parentControl.querySelector('.badge') : null;
+                if (badgeEl) badgeEl.innerText = orderCart[id].qty;
+            }
+
+            refreshAllTotals();
+        }
+
+        function refreshAllTotals() {
+            finalQty = 0;
+            finalCost = 0;
+
+            for (let id in orderCart) {
+                finalQty += orderCart[id].qty;
+                finalCost += (orderCart[id].price * orderCart[id].qty);
+            }
+
+            customMenuCart.forEach(item => {
+                finalQty += item.qty;
+                finalCost += (item.price * item.qty);
+            });
+
+            document.getElementById('total-items').innerText = finalQty;
+            document.getElementById('total-cost').innerText = finalCost;
+            validateOrderStatus();
+        }
+
+        function validateOrderStatus() {
+            const currentName = document.getElementById('custName').value.trim();
+            const currentTable = document.getElementById('tableNumber').value;
+            const submitBtn = document.getElementById('submitOrderBtn');
+
+            if (currentName !== "" && currentTable !== "" && finalQty > 0) {
+                submitBtn.disabled = false;
+            } else {
+                submitBtn.disabled = true;
+            }
+        }
+
+        // ป็อปอัปสรุปรายการออเดอร์ก่อนส่งห้องครัว (แยกรายการ โปรเซต 1 และ โปรเซต 2 ออกจากกัน)
+        function triggerSummaryPopup() {
+            document.getElementById('summaryCustomer').innerText = document.getElementById('custName').value;
+            document.getElementById('summaryTable').innerText = document.getElementById('tableNumber').value;
+            
+            const listContainer = document.getElementById('summaryListItems');
+            listContainer.innerHTML = "";
+            
+            // 1. วนลูป เมนูปกติ / โปรเซต จากหน้าสไลด์หลัก
+            for (let id in orderCart) {
+                if (orderCart[id].qty > 0) {
+                    const noteContent = orderCart[id].spicy ? `<div style="color: #ffc107; font-size: 13px; margin-left: 28px; margin-top: 2px;"><i class="fa-solid fa-pen-to-square"></i> หมายเหตุ: ${orderCart[id].spicy}</div>` : '';
+                    
+                    listContainer.innerHTML += `
+                        <div class="modal-item" style="display: flex; flex-direction: column; margin-bottom: 12px; border-bottom: 1px dashed #444; padding-bottom: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                                    <button onclick="removeNormalItemFromSummary('${id}')" style="background: none; border: none; color: #ff4747; cursor: pointer; font-size: 16px; padding: 0 4px;">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                    <span style="color: #fff; font-size: 15px;">🍳 ${orderCart[id].name}</span>
+                                </div>
+                                
+                                <div style="display: flex; align-items: center; background: #222; border-radius: 20px; padding: 2px 6px; margin: 0 15px;">
+                                    <button onclick="updateSummaryItemQty('normal', '${id}', -1)" style="background: #333; border: none; color: white; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px;">-</button>
+                                    <span style="color: #fff; margin: 0 10px; font-weight: bold; font-size: 14px; min-width: 15px; text-align: center;">${orderCart[id].qty}</span>
+                                    <button onclick="updateSummaryItemQty('normal', '${id}', 1)" style="background: #ff4747; border: none; color: white; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px;">+</button>
+                                </div>
+
+                                <strong style="color: #fff; min-width: 60px; text-align: right;">฿${orderCart[id].price * orderCart[id].qty}</strong>
+                            </div>
+                            ${noteContent}
+                        </div>
+                    `;
+                }
+            }
+
+            // 2. วนลูป เมนูสั่งทำพิเศษ / เลือกไซส์ผ่านกล่องเปิดปิด (Modal)
+            customMenuCart.forEach((item, index) => {
+                const noteContent = item.spicy ? `<div style="color: #ffc107; font-size: 13px; margin-left: 28px; margin-top: 2px;"><i class="fa-solid fa-pen-to-square"></i> หมายเหตุ: ${item.spicy}</div>` : '';
+                
+                listContainer.innerHTML += `
+                    <div class="modal-item" style="display: flex; flex-direction: column; margin-bottom: 12px; border-bottom: 1px dashed #444; padding-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                                <button onclick="removeCustomItemFromSummary(${index})" style="background: none; border: none; color: #ff4747; cursor: pointer; font-size: 16px; padding: 0 4px;">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                                <span style="color: #fff; font-size: 15px;">🌶️ <strong>${item.name}</strong></span>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; background: #222; border-radius: 20px; padding: 2px 6px; margin: 0 15px;">
+                                <button onclick="updateSummaryItemQty('custom', ${index}, -1)" style="background: #333; border: none; color: white; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px;">-</button>
+                                <span style="color: #fff; margin: 0 10px; font-weight: bold; font-size: 14px; min-width: 15px; text-align: center;">${item.qty}</span>
+                                <button onclick="updateSummaryItemQty('custom', ${index}, 1)" style="background: #ff4747; border: none; color: white; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 12px;">+</button>
+                            </div>
+
+                            <strong style="color: #fff; min-width: 60px; text-align: right;">฿${item.price * item.qty}</strong>
+                        </div>
+                        ${noteContent}
+                    </div>
+                `;
+            });
+            
+            document.getElementById('summaryTotalCost').innerText = finalCost;
+            document.getElementById('summaryModal').style.display = 'flex';
+        }
+
+        function updateSummaryItemQty(type, key, amount) {
+            if (type === 'normal') {
+                if (orderCart[key]) {
+                    orderCart[key].qty += amount;
+                    if (orderCart[key].qty < 0) {
+                        orderCart[key].qty = 0;
+                    }
+                    
+                    const targetBadge = document.getElementById(`badge-${key}`);
+                    if (targetBadge) {
+                        targetBadge.innerText = orderCart[key].qty;
+                    } else {
+                        const controlEl = document.getElementById(`control-${key}`);
+                        if (controlEl) {
+                            const badgeEl = controlEl.querySelector('.badge');
+                            if (badgeEl) badgeEl.innerText = orderCart[key].qty;
+                        }
+                    }
+                }
+            } else if (type === 'custom') {
+                if (customMenuCart[key]) {
+                    customMenuCart[key].qty += amount;
+                    if (customMenuCart[key].qty <= 0) {
+                        customMenuCart[key].qty = 1;
+                    }
+                }
+            }
+            
+            refreshAllTotals();
+            if (finalQty === 0) {
+                closeSummaryPopup();
+            } else {
+                triggerSummaryPopup();
+            }
+        }
+
+        function removeNormalItemFromSummary(id) {
+            if (confirm("ต้องการลบรายการนี้ใช่หรือไม่?")) {
+                if (orderCart[id]) orderCart[id].qty = 0;
+                
+                const targetBadge = document.getElementById(`badge-${id}`);
+                if (targetBadge) {
+                    targetBadge.innerText = 0;
+                } else {
+                    const controlEl = document.getElementById(`control-${id}`);
+                    if (controlEl) {
+                        const badgeEl = controlEl.querySelector('.badge');
+                        if (badgeEl) badgeEl.innerText = 0;
+                    }
+                }
+
+                refreshAllTotals();
+                if (finalQty === 0) closeSummaryPopup();
+                else triggerSummaryPopup(); 
+            }
+        }
+
+        function removeCustomItemFromSummary(index) {
+            if (confirm("ต้องการลบรายการนี้ใช่หรือไม่?")) {
+                customMenuCart.splice(index, 1);
+                refreshAllTotals();
+                if (finalQty === 0) closeSummaryPopup();
+                else triggerSummaryPopup();
+            }
+        }
+
+        function closeSummaryPopup() {
+            document.getElementById('summaryModal').style.display = 'none';
+        }
+
+        function sendOrderToKitchen() {
+            alert("🔥 ส่งรายการออเดอร์เข้าห้องครัวเรียบร้อย! กรุณารอแซบได้เลยครับ");
+            location.reload();
+        }
+  </script>
+</body>
+</html>
