@@ -28,15 +28,14 @@ app.post('/api/order', async (req, res) => {
         }
 
         // จัดอาร์ตเวิร์กตามบรีฟเป๊ะๆ
-        const messageText = `🌶️🔥🌶️🔥🌶️🔥🌶️🔥🌶️\n` +
-                            `🔥 มีออเดอร์ใหม่เข้าครัว!  🔥\n` +
-                            `📌 หมายเลขโต๊ะ: ${table.includes('โต๊ะที่') ? table : 'โต๊ะที่ ' + table} 🌶️\n` +
-                            `👤 ชื่อลูกค้า: คุณ ${customer}\n` +
-                            `🌶️🔥🌶️🔥🌶️🔥🌶️🔥🌶️\n` +
-                            `${formattedOrders}\n` +
-                            `🌶️🔥🌶️🔥🌶️🔥🌶️🔥🌶️\n` +
-                            `🔥💰 ยอดสุทธิ: ${totalCost} บาท🔥\n` +
-                            `🌶️🔥🌶️🔥🌶️🔥🌶️🔥🌶️`;
+// 🌟 รูปแบบข้อความเด้งเข้า LINE ล่าสุด (พริกและไฟแซ่บลืมผัว)
+const messageText = `🔥 มีออเดอร์ใหม่เข้าครัว! 🔥\n` +
+                    `📌 หมายเลขโต๊ะ: ${table.includes('โต๊ะที่') ? table : 'โต๊ะที่ ' + table}\n` +
+                    `👤 ชื่อลูกค้า: คุณ ${customer}\n` +
+                    `🌶️🔥🌶️🔥🌶️🔥\n` +
+                    `${formattedOrders}\n` +
+                    `🌶️🔥🌶️🔥🌶️🔥\n` +
+                    `💰 ยอดสุทธิ: ${totalCost} บาท`;
 
         await axios.post('https://api.line.me/v2/bot/message/push', {
             to: LINE_TARGET_GROUP_ID,
