@@ -490,16 +490,23 @@
             <option value="จัดส่งถึงบ้าน">🚚 จัดส่งถึงบ้าน (เดลิเวอรี่)</option>
         </select>
 
-        <input type="text" id="actualTableNum" placeholder="พิมพ์ระบุหมายเลขโต๊ะ *" oninput="validateOrderStatus()" style="display: none; flex: 1; min-width: 140px; border: 1px solid #ff4747;">
+        <select id="actualTableNum" onchange="validateOrderStatus()" style="display: none; flex: 1; min-width: 140px; border: 1px solid #ff4747; background: #fff; color: #000; padding: 4px; border-radius: 4px;">
+            <option value="">-- เลือกหมายเลขโต๊ะ * --</option>
+            <option value="1">โต๊ะ 1</option>
+            <option value="2">โต๊ะ 2</option>
+            <option value="3">โต๊ะ 3</option>
+            <option value="4">โต๊ะ 4</option>
+            <option value="5">โต๊ะ 5</option>
+            <option value="6">โต๊ะ 6</option>
+            <option value="7">โต๊ะ 7</option>
+            <option value="8">โต๊ะ 8</option>
+            <option value="9">โต๊ะ 9</option>
+            <option value="10">โต๊ะ 10</option>
+            <option value="11">โต๊ะ 11</option>
+            <option value="12">โต๊ะ 12</option>
+        </select>
     </div>
 </div>
-
-<div id="deliveryFields" style="display: none; background: #222; border: 1px solid #ff4747; padding: 15px; margin: 10px auto; border-radius: 8px; max-width: 90%;">
-    <h4 style="color: #ff4747; margin-top: 0; margin-bottom: 10px;"><i class="fa-solid fa-truck"></i> ข้อมูลสำหรับจัดส่งเดลิเวอรี่</h4>
-    <input type="text" id="deliveryPhone" placeholder="ระบุเบอร์โทรศัพท์ติดต่อ *" oninput="validateOrderStatus()" style="width: 100%; padding: 8px; margin-bottom: 8px; background: #333; color: white; border: 1px solid #444; border-radius: 4px;">
-    <textarea id="deliveryAddress" placeholder="ระบุที่อยู่จัดส่งโดยละเอียด *" oninput="validateOrderStatus()" rows="3" style="width: 100%; padding: 8px; background: #333; color: white; border: 1px solid #444; border-radius: 4px; resize: none;"></textarea>
-</div>
-
 
 <div class="swiper">
     <div class="swiper-wrapper">
@@ -1625,19 +1632,26 @@ const swiper = new Swiper('.swiper', {
     pagination: { el: '.swiper-pagination', clickable: true },
 });
 
-// ฟังก์ชันควบคุมการ ซ่อน/แสดง ช่องพิมพ์เลขโต๊ะ และช่องที่อยู่เดลิเวอรี่
+// ฟังก์ชันควบคุมการ ซ่อน/แสดง ช่องเลือกเลขโต๊ะ และช่องที่อยู่เดลิเวอรี่
 function handleOrderTypeChange() {
     const orderStyle = document.getElementById("tableNumber").value;
     const tableInput = document.getElementById("actualTableNum");
     const deliveryBox = document.getElementById("deliveryFields");
     
+    // ซ่อนทุกอย่างไว้ก่อนเริ่มตรวจสอบเงื่อนไข
     if (tableInput) tableInput.style.display = "none";
     if (deliveryBox) deliveryBox.style.display = "none";
     
     if (orderStyle === "ทานที่ร้าน") {
+        // แสดง Dropdown เลือกโต๊ะ (ใช้ block หรือ inline-block เพื่อให้จัดเรียงใน input-group สวยงาม)
         if (tableInput) tableInput.style.display = "block"; 
-    } else if (orderStyle === "จัดส่งถึงบ้าน") {
-        if (deliveryBox) deliveryBox.style.display = "block"; 
+    } else {
+        // ถ้าเปลี่ยนไปเลือกอย่างอื่น (ห่อกลับบ้าน / จัดส่งถึงบ้าน) ให้ล้างค่าเลขโต๊ะที่เคยเลือกค้างไว้
+        if (tableInput) tableInput.value = ""; 
+        
+        if (orderStyle === "จัดส่งถึงบ้าน") {
+            if (deliveryBox) deliveryBox.style.display = "block"; 
+        }
     }
 }
 
