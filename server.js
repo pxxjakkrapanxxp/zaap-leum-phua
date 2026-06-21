@@ -28,7 +28,7 @@ app.post('/api/order', async (req, res) => {
             formattedOrders = orders;
         }
 
-        // 📝 จัดการประเภทการเสิร์ฟ / ข้อมูลจัดส่ง (ปรับปรุงเงื่อนไขให้ดักจับแม่นยำขึ้น)
+        // 📝 จัดการประเภทการเสิร์ฟ / ข้อมูลจัดส่ง
         let deliveryInfo = '';
         const orderType = table ? table.toString().trim() : '';
 
@@ -39,8 +39,8 @@ app.post('/api/order', async (req, res) => {
         } else if (orderType.includes('ห่อกลับบ้าน')) {
             deliveryInfo = `🛍️ รูปแบบ: ห่อกลับบ้าน`;
         } else {
-            // กรณีทานที่ร้าน (หรือส่งเลขโต๊ะมาตรงๆ)
-            const tableNum = orderType.includes('โต๊ะที่') ? orderType.replace('โต๊ะที่ ', '') : orderType;
+            // 🛠️ แก้ไขตรงนี้: ลบคำว่า "โต๊ะที่" หรือ "โต๊ะ" ออกไปให้เหลือแต่ตัวเลข เพื่อไม่ให้คำว่าโต๊ะซ้ำซ้อน
+            const tableNum = orderType.replace(/โต๊ะที่|โต๊ะ/g, '').trim();
             deliveryInfo = `🍽️ รูปแบบ: ทานที่ร้าน (โต๊ะ: ${tableNum || '-'})`;
         }
 
