@@ -11,7 +11,6 @@ const LINE_TARGET_GROUP_ID = "Caf6de425fc6bacbf9afd71c27ffef7ea";
 
 app.post('/api/order', async (req, res) => {
     try {
-        // รับค่าเพิ่ม: phone (เบอร์โทร), address (ที่อยู่) จากหน้าบ้านเดลิเวอรี่
         const { customer, table, orders, totalCost, phone, address } = req.body;
 
         let formattedOrders = '';
@@ -21,31 +20,31 @@ app.post('/api/order', async (req, res) => {
             formattedOrders = orders.map(item => {
                 const price = item.price || 0;
                 const qty = item.quantity || 1;
-                // ดึงค่าความเผ็ด (ถ้าหน้าบ้านส่งมาเป็น item.spicy ถ้าไม่มีให้ใส่ เผ็ดกลาง เป็น default)
                 const spicy = item.spicy || 'เผ็ดกลาง';
                 
-                // รูปแบบ: • [เมนู] ([ความเผ็ด]) x [จำนวน] จาน \n ราคา [ราคา] บาท
                 return `• ${item.name} (${spicy}) x ${qty} จาน\nราคา ${price * qty} บาท`;
             }).join('\n\n'); 
         } else {
             formattedOrders = orders;
         }
 
-        // 📝 จัดการประเภทการเสิร์ฟ / ข้อมูลจัดส่ง
+        // 📝 จัดการประเภทการเสิร์ฟ / ข้อมูลจัดส่ง (ปรับปรุงเงื่อนไขให้ดักจับแม่นยำขึ้น)
         let deliveryInfo = '';
-        if (table === 'จัดส่งถึงบ้าน' || table === 'เดลิเวอรี่') {
+        const orderType = table ? table.toString().trim() : '';
+
+        if (orderType.includes('จัดส่งถึงบ้าน') || orderType.includes('เดลิเวอรี่')) {
             deliveryInfo = `🚚 รูปแบบ: จัดส่งถึงบ้าน (เดลิเวอรี่)\n` +
                            `📞 เบอร์โทร: ${phone || '-'}\n` +
                            `📍 ที่อยู่: ${address || '-'}`;
-        } else if (table === 'ห่อกลับบ้าน') {
+        } else if (orderType.includes('ห่อกลับบ้าน')) {
             deliveryInfo = `🛍️ รูปแบบ: ห่อกลับบ้าน`;
         } else {
-            // กรณีทานที่ร้าน เคลียร์คำว่า "โต๊ะที่" ซ้ำซ้อนออก
-            const tableNum = table.includes('โต๊ะที่') ? table.replace('โต๊ะที่ ', '') : table;
-            deliveryInfo = `🍽️ รูปแบบ: ทานที่ร้าน (โต๊ะ: ${tableNum})`;
+            // กรณีทานที่ร้าน (หรือส่งเลขโต๊ะมาตรงๆ)
+            const tableNum = orderType.includes('โต๊ะที่') ? orderType.replace('โต๊ะที่ ', '') : orderType;
+            deliveryInfo = `🍽️ รูปแบบ: ทานที่ร้าน (โต๊ะ: ${tableNum || '-'})`;
         }
 
-        // 🌟 ข้อความอาร์ตเวิร์กแจ้งเตือนเข้ากลุ่ม LINE 
+        // 🌟 ข้อความอาร์ตเวิร์กแจ้งเตือนเข้ากลุ่ม LINE
         const messageText = `📥 ออเดอร์ใหม่เข้าแล้วจ้า! 🔥🌶️\n\n` +
                             `${deliveryInfo}\n` +
                             `👤 ลูกค้า: คุณ ${customer}\n\n` +
