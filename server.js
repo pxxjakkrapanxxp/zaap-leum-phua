@@ -3,7 +3,6 @@ const cors = require('cors');
 const axios = require('axios');
 const app = express();
 
-// เปิดรับส่งข้อมูลข้ามโดเมนอย่างสมบูรณ์
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -12,15 +11,13 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// 🚀 1. คู่ตั้งค่าบอทและกลุ่ม (อย่าลืมทยอยเอา ID กลุ่มใหม่มาเปลี่ยนในช่อง groupId น้า)
 const LINE_BOT_CONFIGS = [
     {
         token: "nLD8FyKUYl+DTlPrxjM5LfCok5WQB6e+2018rl2aVGXx1bcoZB7TVKu0Z3dUpvtqUvL/3ddpHbQT4mlPPa8r669UHktFYHxpiqrUIqdsfDRZPRy8wJPIowVmQZz6Hh21nB3uACfYu+aOi/vqBi+PgwdB04t89/1O/w1cDnyilFU=", 
-        groupId: "วาง_GROUP_ID_ของกลุ่มใหม่ที่_2_ตรงนี้" // 📦 กลุ่มที่ 2
+        groupId: "วาง_GROUP_ID_ของกลุ่มใหม่ที่_2_ตรงนี้" 
     }
 ];
 
-// หน้าแรกป้องกันเซิร์ฟเวอร์เงียบ
 app.get('/', (req, res) => {
     res.status(200).send('ระบบหลังบ้านแซ่บลืมผัวทำงานปกติจ้า 🌶️🔥');
 });
@@ -29,7 +26,27 @@ app.get('/api/ping', (req, res) => {
     res.status(200).send('OK');
 });
 
-// 🔄 ฟังก์ชันสลับกลุ่มอัตโนมัติ
+// 🔍 บรรทัดนี้จะดักจับสิ่งทีมาจาก LINE Webhook แล้วพ่น ID กลุ่มลงหน้า Logs ชัดๆ เลยครับ
+app.post('/callback', (req, res) => {
+    try {
+        const events = req.body.events;
+        if (events && events.length > 0) {
+            events.forEach(event => {
+                // ดึงรหัสจาก source ไม่ว่าจะเป็น group หรือ room
+                if (event.source && event.source.groupId) {
+                    console.log('====================================');
+                    console.log('📌 พบ GROUP ID ของพี่โอ๊ตแล้วครับ:');
+                    console.log(`🆔 รหัสกลุ่มคือ: ${event.source.groupId}`);
+                    console.log('====================================');
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Error parsing webhook:', err.message);
+    }
+    res.sendStatus(200);
+});
+
 async function sendLineMessageWithFallback(messageText, botIndex = 0) {
     if (botIndex >= LINE_BOT_CONFIGS.length) {
         throw new Error("🚨 โควตาฟรีของบอท LINE ทุกกลุ่มเต็มหมดแล้วจ้า!");
@@ -59,7 +76,6 @@ async function sendLineMessageWithFallback(messageText, botIndex = 0) {
         const errorMsg = JSON.stringify(errorData);
         
         if (errorMsg.includes("limit") || error.response?.status === 400 || error.response?.status === 429) {
-            console.warn(`⚠️ บอทกลุ่มที่ ${botIndex + 1} ส่งไม่ได้ กำลังโยนไป บอทกลุ่มที่ ${botIndex + 2}...`);
             return await sendLineMessageWithFallback(messageText, botIndex + 1);
         } else {
             throw new Error(`LINE API พังที่กลุ่ม ${botIndex + 1}: ${error.message}`);
@@ -115,9 +131,6 @@ app.post('/api/order', async (req, res) => {
     }
 });
 
-app.post('/callback', (req, res) => { res.sendStatus(200); });
-
-// 🛠️ แก้จุดเปิดพอร์ตใหม่ให้อ่านค่าพอร์ตของ Render ได้แม่นยำ 100%
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => { 
     console.log(`🚀 เซิร์ฟเวอร์เปิดใช้งานสำเร็จที่พอร์ต: ${PORT}`); 
