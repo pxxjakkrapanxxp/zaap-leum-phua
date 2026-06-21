@@ -8,7 +8,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
@@ -256,39 +257,36 @@
         }
 
       /* ==========================================================================
-           🔥 ปรับปรุงชุดนี้: หน้าต่างเลือกเมนูอาหาร (Modal) สไตล์ตำแซ่บนีออน
+            🔥 หน้าต่างเลือกเมนูอาหาร (Modal) สไตล์ตำแซ่บนีออน
            ========================================================================== */
         
-        /* พื้นหลังดำโปร่งแสงตอนเปิดหน้าต่าง */
         .modal {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.7); /* ลดความทึบลงเล็กน้อยเพื่อให้เห็นสไลด์ภาพข้างหลัง */
-            backdrop-filter: blur(3px); /* เบลอหลังฉากให้ดูมิติระดับพรีเมียม */
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(3px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
             padding: 16px;
         }
 
-        /* ตัวกล่องการ์ดเลือกเมนูอาหาร */
         .modal-card {
-            background: #161412; /* สีดำอมน้ำตาลไหม้ ฟีลครกดินเผา/ถ่านจุดเตาไก่ย่าง */
-            border-radius: 24px; /* มนรับกับมุมขอบหน้าจอมือถือยุคใหม่ */
+            background: #161412;
+            border-radius: 24px;
             width: 100%;
-            max-width: 350px; /* บีบกระชับให้พอดีอุ้งมือ สั่งงานมือเดียวสะดวก */
-            max-height: 75vh; /* 👑 ล็อกความสูงการ์ดไว้ไม่ให้เกะกะล้นหน้าจอ */
+            max-width: 350px;
+            max-height: 75vh;
             display: flex;
             flex-direction: column;
-            border: 2px solid #ff3131; /* เส้นขอบแดงพริกสดสะท้อนแสง */
+            border: 2px solid #ff3131;
             box-shadow: 0 15px 35px rgba(255, 49, 49, 0.3);
-            overflow: hidden; /* ล็อกหัวท้ายไม่ให้ส่วนโค้งเพี้ยน */
+            overflow: hidden;
         }
 
-        /* ส่วนหัวของการ์ดแสดงชื่อเมนู */
         .modal-header {
-            background: linear-gradient(135deg, #ff3131, #ff7300); /* ไล่เฉดสีส้ม-แดงรสแซ่บ */
+            background: linear-gradient(135deg, #ff3131, #ff7300);
             padding: 14px 18px;
             font-size: 16px;
             font-weight: 600;
@@ -315,19 +313,17 @@
         }
         .close-modal:active { background: rgba(0, 0, 0, 0.4); }
 
-        /* 👑 ส่วนเนื้อหาภายในที่เปิดให้ใช้นิ้วเลื่อนสไลด์ขึ้นลงได้ (ต้องครอบใน HTML) */
         .modal-body {
             padding: 16px 18px;
-            overflow-y: auto; /* เนื้อหายาวแค่ไหนก็เลื่อนดูข้างในได้ ปุ่มเพิ่มลงตะกร้าไม่มีทางหลุดจอ */
+            overflow-y: auto;
             flex: 1;
-            -webkit-overflow-scrolling: touch; /* เลื่อนสไลด์ไหลลื่นบน iOS */
+            -webkit-overflow-scrolling: touch;
         }
 
-        /* ปรับสไตล์ตัวหนังสือและฟิลด์ฟอร์มกรอกข้อมูล */
         .form-label {
             display: block;
             font-size: 13px;
-            color: #ffb47e; /* สีส้มพาสเทลอ่อน อ่านง่าย ไม่ดุดันเกินไป */
+            color: #ffb47e;
             margin-bottom: 6px;
             margin-top: 14px;
             font-weight: 500;
@@ -336,7 +332,7 @@
 
         .form-select, .form-input {
             width: 100%;
-            background: #241f1c; /* สีกล่องอินพุตให้เข้ากับสีพื้นหลังการ์ด */
+            background: #241f1c;
             border: 1px solid #463b35;
             color: white;
             padding: 11px 14px;
@@ -346,10 +342,9 @@
             transition: border-color 0.2s;
         }
         .form-select:focus, .form-input:focus {
-            border-color: #ff7300; /* โฟกัสแล้วเปลี่ยนเป็นเส้นขอบส้มจี๊ด */
+            border-color: #ff7300;
         }
 
-        /* ปุ่มเลือกความเผ็ดสไตล์แท็บกลุ่ม */
         .spicy-options {
             display: flex;
             gap: 6px;
@@ -377,7 +372,6 @@
             box-shadow: 0 2px 8px rgba(255, 49, 49, 0.4);
         }
 
-        /* กล่องควบคุมจำนวนจานอาหาร (- 1 +) */
         .modal-qty-section {
             display: flex;
             justify-content: space-between;
@@ -419,7 +413,6 @@
             color: white;
         }
 
-        /* รายการสินค้าออเดอร์กรณีใช้กับบิลสรุป */
         .modal-list {
             max-height: 150px;
             overflow-y: auto;
@@ -435,7 +428,6 @@
             align-items: center;
         }
 
-        /* ปุ่มคำสั่งต่างๆ */
         .modal-buttons {
             display: flex;
             gap: 10px;
@@ -456,7 +448,6 @@
             gap: 6px;
         }
         
-        /* ปุ่มเขียวนีออนตัดกับตัวการ์ดเพื่อกระตุ้นการสั่งอาหาร */
         .btn-m-add { 
             background: linear-gradient(135deg, #00c853, #11b04c); 
             color: white; 
@@ -526,8 +517,7 @@
             <div class="click-hint-banner"><i class="fa-solid fa-hand-pointer animate-bounce"></i> จิ้มที่รูปอาหารเพื่อเลือกความเผ็ดและจำนวนได้เลยจ้า</div>
             <div class="menu-wrapper">
                 <img src="page0.jpg" onerror="this.src='https://placehold.co/500x700/333/fff?text=Page+0'">
-                
-                </div>
+            </div>
         </div>
 
         <div class="swiper-slide">
@@ -1632,20 +1622,23 @@ function sendOrderToKitchen() {
         };
 
 // ==========================================
-// 🚀 เริ่มต้นตั้งค่าระบบหน้าเว็บ
+// 🚀 เริ่มต้นตั้งค่าระบบหน้าเว็บ (Optimized for Mobile)
 // ==========================================
 const swiper = new Swiper('.swiper', {
     effect: 'slide', 
-    speed: 300,      
+    speed: 250, // ปรับให้ไวขึ้นเล็กน้อยเพื่อลดอาการหน่วงทางสายตา      
     preloadImages: false, 
     lazy: { loadPrevNext: true },
     loop: false,
     pagination: { el: '.swiper-pagination', clickable: true },
+    // 🔥 เพิ่มพารามิเตอร์เพื่อช่วยรีด Performance บนมือถือรุ่นเก่า
+    watchSlidesProgress: true,
+    touchStartPreventDefault: false, // ป้องกันการติดขัดขณะเริ่มใช้นิ้วปัดจอ
 });
 
-// ฟังก์ชันควบคุมการ ซ่อน/แสดง ช่องเลือกเลขโต๊ะ และช่องที่อยู่เดลิเวอรี่ (เวอร์ชั่นแก้ไขตามภาพจริง)
+// ฟังก์ชันควบคุมการ ซ่อน/แสดง ช่องเลือกเลขโต๊ะ และช่องที่อยู่เดลิเวอรี่
 function handleOrderTypeChange() {
-    const orderStyle = document.getElementById("tableNumber").value;
+    const orderStyle = document.getElementById("tableNumber")?.value || "";
     const tableInput = document.getElementById("actualTableNum");
     const deliveryBox = document.getElementById("deliveryFields");
     
@@ -1656,8 +1649,6 @@ function handleOrderTypeChange() {
         if (tableInput) tableInput.style.display = "block"; 
     } else {
         if (tableInput) tableInput.value = ""; 
-        
-        // ใช้ .includes ดักจับคำว่า "จัดส่ง" ไม่ว่าค่าจะมาเป็นแบบไหน กล่องก็เด้งแน่นอนครับ!
         if (orderStyle.includes("จัดส่ง")) {
             if (deliveryBox) deliveryBox.style.display = "block"; 
         }
@@ -1670,27 +1661,29 @@ function handleOrderTypeChange() {
 function openMenuModal(pageNumber) {
     currentActivePage = pageNumber;
     const config = menuDatabase[pageNumber];
+    if (!config) return;
     
     document.getElementById('modalHeaderTitle').innerHTML = `<i class="fa-solid fa-list"></i> ${config.title}`;
     
     const menuSelect = document.getElementById('menuSelector');
     menuSelect.innerHTML = '<option value="">-- เลือกเมนู --</option>';
     
+    // 🔥 เปลี่ยนมาใช้ documentFragment เพื่อประสิทธิภาพที่ดียิ่งขึ้น (ไม่กระตุก)
+    const fragment = document.createDocumentFragment();
     config.options.forEach(item => {
         let opt = document.createElement('option');
         opt.value = item.name;
         opt.setAttribute('data-prices', item.prices);
         opt.text = `${item.name} (${item.prices.replace(/,/g, '/')}.-)`;
-        menuSelect.add(opt);
+        fragment.appendChild(opt);
     });
+    menuSelect.appendChild(fragment);
 
     document.getElementById('priceSelector').innerHTML = '<option value="">-- โปรดเลือกเมนูก่อน --</option>';
     
     chosenSpicy = ""; 
     const modalNoteInput = document.getElementById('customSpicyInput') || document.getElementById('modalSpicyNote');
-    if (modalNoteInput) {
-        modalNoteInput.value = "";
-    }
+    if (modalNoteInput) modalNoteInput.value = "";
 
     currentModalQty = 1;
     document.getElementById('modalQtyContainer').innerText = currentModalQty;
@@ -1700,8 +1693,10 @@ function openMenuModal(pageNumber) {
 function openMenuModalWithSelection(pageNumber, selectedMenuName) {
     openMenuModal(pageNumber);
     const menuSelect = document.getElementById('menuSelector');
-    menuSelect.value = selectedMenuName;
-    onMenuChange(); 
+    if (menuSelect) {
+        menuSelect.value = selectedMenuName;
+        onMenuChange(); 
+    }
 }
 
 function closeMenuModal() {
@@ -1711,8 +1706,9 @@ function closeMenuModal() {
 function onMenuChange() {
     const menuSelect = document.getElementById('menuSelector');
     const priceSelect = document.getElementById('priceSelector');
+    if (!menuSelect || !priceSelect) return;
+
     const selectedOption = menuSelect.options[menuSelect.selectedIndex];
-    
     priceSelect.innerHTML = "";
     
     if(!selectedOption || !selectedOption.value) {
@@ -1723,13 +1719,15 @@ function onMenuChange() {
     const prices = selectedOption.getAttribute('data-prices').split(',');
     const sizeLabels = prices.length === 3 ? ['ไซส์ S', 'ไซส์ M', 'ไซส์ L'] : prices.length === 2 ? ['จานปกติ', 'พิเศษ/จานใหญ่'] : [];
 
+    const fragment = document.createDocumentFragment();
     prices.forEach((price, index) => {
         let opt = document.createElement('option');
         opt.value = price;
         let labelSuffix = sizeLabels[index] ? ` (${sizeLabels[index]})` : '';
         opt.text = `${price} บาท${labelSuffix}`;
-        priceSelect.add(opt);
+        fragment.appendChild(opt);
     });
+    priceSelect.appendChild(fragment);
 }
 
 function setSpicyFromInput(textValue) {
@@ -1743,11 +1741,11 @@ function changeModalQty(amount) {
 }
 
 function addItemToCart() {
-    const menuName = document.getElementById('menuSelector').value;
-    const menuPrice = parseInt(document.getElementById('priceSelector').value);
+    const menuName = document.getElementById('menuSelector')?.value;
+    const priceSelectorVal = document.getElementById('priceSelector')?.value;
+    const menuPrice = parseInt(priceSelectorVal);
 
-    if(!menuName || !menuPrice) {
-        // 🔥 จุดแก้ไขที่ 1: แจ้งเตือนเมื่อลืมเลือกเมนู/ราคา
+    if(!menuName || !priceSelectorVal || isNaN(menuPrice)) {
         Swal.fire({
             title: 'ข้อมูลไม่ครบถ้วน',
             text: 'กรุณาเลือกเมนูและราคาให้ครบถ้วนด้วยครับ',
@@ -1792,7 +1790,6 @@ function handleHotspotClick(e, id, name, price) {
     initCartItem(id, name, price);
 }
 
-// ลบคำสั่ง confirm() ระบบเก่าออก เพื่อใช้ความนุ่มนวลของสไตล์ร้านเราแทน
 function updateSummaryItemQty(type, key, amount) {
     if (type === 'normal') {
         if (orderCart[key]) {
@@ -1824,7 +1821,6 @@ function updateSummaryItemQty(type, key, amount) {
     else triggerSummaryPopup();
 }
 
-// 🔥 จุดแก้ไขที่ 2: เปลี่ยนระบบลบรายการอาหารปกติในตะกร้า
 function removeNormalItemFromSummary(id) {
     Swal.fire({
         title: 'ยืนยันการลบ?',
@@ -1858,7 +1854,6 @@ function removeNormalItemFromSummary(id) {
     });
 }
 
-// 🔥 จุดแก้ไขที่ 3: เปลี่ยนระบบลบรายการอาหารแบบคัสตอมในตะกร้า
 function removeCustomItemFromSummary(index) {
     Swal.fire({
         title: 'ยืนยันการลบ?',
@@ -1949,14 +1944,17 @@ function refreshAllTotals() {
     finalCost = 0;
 
     for (let id in orderCart) {
-        finalQty += orderCart[id].qty;
-        finalCost += (orderCart[id].price * orderCart[id].qty);
+        if (orderCart.hasOwnProperty(id)) {
+            finalQty += orderCart[id].qty;
+            finalCost += (orderCart[id].price * orderCart[id].qty);
+        }
     }
 
-    customMenuCart.forEach(item => {
-        finalQty += item.qty;
-        finalCost += (item.price * item.qty);
-    });
+    // แนะนำเปลี่ยนเป็นธรรมดาเพื่อถนอมหน่วยความจำในกรณีข้อมูลจำนวนเยอะ
+    for (let i = 0; i < customMenuCart.length; i++) {
+        finalQty += customMenuCart[i].qty;
+        finalCost += (customMenuCart[i].price * customMenuCart[i].qty);
+    }
 
     document.getElementById('total-items').innerText = finalQty;
     document.getElementById('total-cost').innerText = finalCost;
@@ -1994,17 +1992,7 @@ function validateOrderStatus() {
             }
         }
 
-        let totalItems = 0;
-        if (typeof finalQty !== 'undefined') {
-            totalItems = finalQty;
-        } else {
-            if (typeof orderCart !== 'undefined') {
-                for (let id in orderCart) { if (orderCart[id].qty > 0) totalItems += orderCart[id].qty; }
-            }
-            if (typeof customMenuCart !== 'undefined') {
-                customMenuCart.forEach(item => { if (item.qty > 0) totalItems += item.qty; });
-            }
-        }
+        let totalItems = finalQty;
 
         if (submitBtn) {
             if (isFormValid && totalItems > 0) {
@@ -2022,27 +2010,31 @@ function validateOrderStatus() {
     }
 }
 
+// 🔥 จุดแก้ไขสำคัญเพื่อลดอาการค้าง: ทำ String Concatenation รวดเดียวก่อนอัปเดต DOM
 function triggerSummaryPopup() {
-    document.getElementById('summaryCustomer').innerText = document.getElementById('custName').value;
+    const custNameEl = document.getElementById('custName');
+    document.getElementById('summaryCustomer').innerText = custNameEl ? custNameEl.value : "";
     
-    const orderStyle = document.getElementById('tableNumber').value;
+    const orderStyle = document.getElementById('tableNumber')?.value || "";
     if (orderStyle === "ทานที่ร้าน") {
-        const tableNum = document.getElementById("actualTableNum").value;
+        const tableNum = document.getElementById("actualTableNum")?.value || "";
         document.getElementById('summaryTable').innerText = tableNum ? "🍽️ โต๊ะ: " + tableNum : "🍽️ ไม่ได้ระบุโต๊ะ";
     } else if (orderStyle === "ห่อกลับบ้าน") {
         document.getElementById('summaryTable').innerText = "🛍️ ห่อกลับบ้าน";
-    } else if (orderStyle === "จัดส่งถึงบ้าน" || orderStyle === "จัดส่ง") {
+    } else if (orderStyle === "จัดส่งถึงบ้าน" || orderStyle.includes("จัดส่ง")) {
         document.getElementById('summaryTable').innerText = "🚚 จัดส่งถึงบ้าน (เดลิเวอรี่)";
     }
     
     const listContainer = document.getElementById('summaryListItems');
-    listContainer.innerHTML = "";
+    if (!listContainer) return;
+
+    let htmlBuffer = ""; // เก็บค่า HTML ทั้งหมดไว้ที่นี่แทนการสั่ง render ทีละรอบ
     
     for (let id in orderCart) {
-        if (orderCart[id].qty > 0) {
+        if (orderCart.hasOwnProperty(id) && orderCart[id].qty > 0) {
             const noteContent = orderCart[id].spicy ? `<div style="color: #ffc107; font-size: 13px; margin-left: 28px; margin-top: 2px;"><i class="fa-solid fa-pen-to-square"></i> หมายเหตุ: ${orderCart[id].spicy}</div>` : '';
             
-            listContainer.innerHTML += `
+            htmlBuffer += `
                 <div class="modal-item" style="display: flex; flex-direction: column; margin-bottom: 12px; border-bottom: 1px dashed #444; padding-bottom: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
@@ -2063,10 +2055,11 @@ function triggerSummaryPopup() {
         }
     }
 
-    customMenuCart.forEach((item, index) => {
+    for (let index = 0; index < customMenuCart.length; index++) {
+        const item = customMenuCart[index];
         const noteContent = item.spicy ? `<div style="color: #ffc107; font-size: 13px; margin-left: 28px; margin-top: 2px;"><i class="fa-solid fa-pen-to-square"></i> หมายเหตุ: ${item.spicy}</div>` : '';
         
-        listContainer.innerHTML += `
+        htmlBuffer += `
             <div class="modal-item" style="display: flex; flex-direction: column; margin-bottom: 12px; border-bottom: 1px dashed #444; padding-bottom: 8px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
@@ -2084,8 +2077,9 @@ function triggerSummaryPopup() {
                 </div>
                 ${noteContent}
             </div>`;
-    });
+    }
     
+    listContainer.innerHTML = htmlBuffer; // บังคับเขียน DOM แค่ครั้งเดียว ตัวเครื่องจะไม่กระตุกเลย
     document.getElementById('summaryTotalCost').innerText = finalCost;
     document.getElementById('summaryModal').style.display = 'flex';
 }
@@ -2125,7 +2119,6 @@ function sendOrderToKitchen() {
         deliveryPhone = phoneInput ? phoneInput.value.trim() : "";
 
         if (!deliveryAddress || !deliveryPhone) {
-            // 🔥 จุดแก้ไขที่ 4 (ย่อย): แจ้งเตือนเมื่อเดลิเวอรี่กรอกข้อมูลไม่ครบ
             Swal.fire({
                 title: 'ข้อมูลจัดส่งไม่ครบ',
                 text: 'กรุณากรอกข้อมูลที่อยู่จัดส่งและเบอร์ติดต่อให้ครบถ้วนด้วยจ้า',
@@ -2222,7 +2215,6 @@ function sendOrderToKitchen() {
         return response.json();
     })
     .then(function(result) {
-        // 🔥 จุดแก้ไขที่ 5: ส่งเข้าครัวสำเร็จ! เปลี่ยนแจ้งเตือนแบบไร้ชื่อเว็บ
         Swal.fire({
             title: 'สำเร็จ!',
             text: '🎉 ส่งออเดอร์เข้าครัวสำเร็จแล้วจ้า รอแซ่บนะคะ!',
@@ -2236,7 +2228,6 @@ function sendOrderToKitchen() {
         });
     })
     .catch(function(error) {
-        // 🔥 จุดแก้ไขที่ 6: เกิดข้อผิดพลาด/หลังบ้านพัง แจ้งเตือนแบบไร้ชื่อเว็บ
         Swal.fire({
             title: 'เกิดข้อผิดพลาด!',
             text: 'กรุณาตรวจสอบเซิร์ฟเวอร์หลังบ้านครับ',
