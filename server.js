@@ -15,24 +15,8 @@ app.use(express.json());
 // 🚀 1. คู่ตั้งค่าบอทและกลุ่ม (อย่าลืมทยอยเอา ID กลุ่มใหม่มาเปลี่ยนในช่อง groupId น้า)
 const LINE_BOT_CONFIGS = [
     {
-        token: "D9ExQrK4/2l62hPuPvnrxJnsNUoRogzAJTYQL8Tzr3U38WBPwJcUf26DceTDkG+qNSuJBVEI5E6d6z4qBcr5VOkwwN3wwk8IeWRc/agLjJzKTrG6S4Nren2ZBV4K5P9GeUg45AOA8VBFFY4hHfquXQdB04t89/1O/w1cDnyilFU=", 
-        groupId: "Caf6de425fc6bacbf9afd71c27ffef7ea" // 📦 กลุ่มที่ 1 (ตัวเดิมที่โควตาเต็ม)
-    },
-    {
         token: "nLD8FyKUYl+DTlPrxjM5LfCok5WQB6e+2018rl2aVGXx1bcoZB7TVKu0Z3dUpvtqUvL/3ddpHbQT4mlPPa8r669UHktFYHxpiqrUIqdsfDRZPRy8wJPIowVmQZz6Hh21nB3uACfYu+aOi/vqBi+PgwdB04t89/1O/w1cDnyilFU=", 
         groupId: "วาง_GROUP_ID_ของกลุ่มใหม่ที่_2_ตรงนี้" // 📦 กลุ่มที่ 2
-    },
-    {
-        token: "Hn4AAbZi9vtZKzYbV6P388u8qazpjWzbRH9lR2E/CaCsMUWNBT2X2y0jMVileg6DZVju1jDkSkn51zOmF3HNRgpm3xEK8HL7Yme40y0zKPHAyRQwAaVj/w7n0601E+nJYRJu2AznmHILCTkQ9oqQkgdB04t89/1O/w1cDnyilFU=", 
-        groupId: "วาง_GROUP_ID_ของกลุ่มใหม่ที่_3_ตรงนี้" // 📦 กลุ่มที่ 3
-    },
-    {
-        token: "A/YWNv3x+KgIMV4DKrToGZsW2r6fzscXk0mZTlONReLBwIxDQLVRdvHWQxHAuIl3UHtBAy7wW0SHgxUXEXEG5jq6Dmhj6rUN8/TwqZPuXD9S67ehPIkJeP99xzEqgWBc+3MPuXDZAgLHT8k8uiRCOwdB04t89/1O/w1cDnyilFU=", 
-        groupId: "วาง_GROUP_ID_ของกลุ่มใหม่ที่_4_ตรงนี้" // 📦 กลุ่มที่ 4
-    },
-    {
-        token: "RiTyu58y5aqBgH5+yXINT+wY0eBOCM4ok1q4TfS/HyNjXmFpnG/ktmcbFobzhh2bcesQxUcCiOmV28gQmu26MyiahEOOc9N10gJK/sfTcNajXuLr0n6iOBBqS0lxL483q5oKQEFFf7IzfVwgx53R+AdB04t89/1O/w1cDnyilFU=", 
-        groupId: "วาง_GROUP_ID_ของกลุ่มใหม่ที่_5_ตรงนี้" // 📦 กลุ่มที่ 5
     }
 ];
 
