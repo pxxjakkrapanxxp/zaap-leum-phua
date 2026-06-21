@@ -15,26 +15,26 @@ app.post('/api/order', async (req, res) => {
 
         let formattedOrders = '';
 
-        // จัดการ Array รายการอาหารพร้อมใส่ 😘-
+// 📥 จัดการ Array รายการอาหารในรูปแบบคลีนๆ ตามบรีฟล่าสุด
         if (Array.isArray(orders)) {
             formattedOrders = orders.map(item => {
                 const price = item.price || 0;
                 const qty = item.quantity || 1;
-                const totalItemPrice = price * qty;
-                return `😘- ${item.name} จานละ ${price} x ${qty} จาน [ราคา ${totalItemPrice} บาท]`;
-            }).join('\n');
+                
+                // รูปแบบ: • ชื่อเมนู [จำนวน] จาน \n ราคา [ราคาต่อจาน] บาท
+                return `• ${item.name} ${qty} จาน\nราคา ${price} บาท`;
+            }).join('\n\n'); // เว้นบรรทัดระหว่างเมนูให้อ่านง่าย
         } else {
             formattedOrders = orders;
         }
 
         // จัดอาร์ตเวิร์กตามบรีฟเป๊ะๆ
 // 🌟 รูปแบบข้อความเด้งเข้า LINE ล่าสุด (พริกและไฟแซ่บลืมผัว)
-const messageText = `🔥 มีออเดอร์ใหม่เข้าครัว! 🔥\n` +
-                    `📌 หมายเลขโต๊ะ: ${table.includes('โต๊ะที่') ? table : 'โต๊ะที่ ' + table}\n` +
-                    `👤 ชื่อลูกค้า: คุณ ${customer}\n` +
-                    `🌶️🔥🌶️🔥🌶️🔥\n` +
-                    `${formattedOrders}\n` +
-                    `🌶️🔥🌶️🔥🌶️🔥\n` +
+const messageText = `📥 ออเดอร์ใหม่\n\n` +
+                    `🍽️ โต๊ะ: ${table.includes('โต๊ะที่') ? table.replace('โต๊ะที่ ', '') : table}\n` +
+                    `👤 ลูกค้า: คุณ ${customer}\n\n` +
+                    `รายการอาหาร\n` +
+                    `${formattedOrders}\n\n` +
                     `💰 ยอดสุทธิ: ${totalCost} บาท`;
 
         await axios.post('https://api.line.me/v2/bot/message/push', {
