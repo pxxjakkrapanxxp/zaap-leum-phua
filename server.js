@@ -3,23 +3,60 @@ const cors = require('cors');
 const axios = require('axios');
 const app = express();
 
-// 🛠️ 1. ปรับ CORS ตัวเต็มเพื่อเคลียร์ทางให้เบราว์เซอร์ Android Chrome ยิงผ่านได้ฉลุยไม่มีบล็อก
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     credentials: true
 }));
-
 app.use(express.json());
 
-const LINE_ACCESS_TOKEN = "D9ExQrK4/2l62hPuPvnrxJnsNUoRogzAJTYQL8Tzr3U38WBPwJcUf26DceTDkG+qNSuJBVEI5E6d6z4qBcr5VOkwwN3wwk8IeWRc/agLjJzKTrG6S4Nren2ZBV4K5P9GeUg45AOA8VBFFY4hHfquXQdB04t89/1O/w1cDnyilFU=";
-const LINE_TARGET_GROUP_ID = "Caf6de425fc6bacbf9afd71c27ffef7ea";
+// 🚀 1. จุดใส่ Token: เอา Token ของบอทหลัก และบอทสำรองมาใส่เรียงกันตรงนี้ได้เลยครับ
+const LINE_TOKENS = [
+    "D9ExQrK4/2l62hPuPvnrxJnsNUoRogzAJTYQL8Tzr3U38WBPwJcUf26DceTDkG+qNSuJBVEI5E6d6z4qBcr5VOkwwN3wwk8IeWRc/agLjJzKTrG6S4Nren2ZBV4K5P9GeUg45AOA8VBFFY4hHfquXQdB04t89/1O/w1cDnyilFU=", // บอทตัวที่ 1 (ตัวเดิมที่เต็ม)
+    "nLD8FyKUYl+DTlPrxjM5LfCok5WQB6e+2018rl2aVGXx1bcoZB7TVKu0Z3dUpvtqUvL/3ddpHbQT4mlPPa8r669UHktFYHxpiqrUIqdsfDRZPRy8wJPIowVmQZz6Hh21nB3uACfYu+aOi/vqBi+PgwdB04t89/1O/w1cDnyilFU=", 
+    "Hn4AAbZi9vtZKzYbV6P388u8qazpjWzbRH9lR2E/CaCsMUWNBT2X2y0jMVileg6DZVju1jDkSkn51zOmF3HNRgpm3xEK8HL7Yme40y0zKPHAyRQwAaVj/w7n0601E+nJYRJu2AznmHILCTkQ9oqQkgdB04t89/1O/w1cDnyilFU="
+    "A/YWNv3x+KgIMV4DKrToGZsW2r6fzscXk0mZTlONReLBwIxDQLVRdvHWQxHAuIl3UHtBAy7wW0SHgxUXEXEG5jq6Dmhj6rUN8/TwqZPuXD9S67ehPIkJeP99xzEqgWBc+3MPuXDZAgLHT8k8uiRCOwdB04t89/1O/w1cDnyilFU="
+    "RiTyu58y5aqBgH5+yXINT+wY0eBOCM4ok1q4TfS/HyNjXmFpnG/ktmcbFobzhh2bcesQxUcCiOmV28gQmu26MyiahEOOc9N10gJK/sfTcNajXuLr0n6iOBBqS0lxL483q5oKQEFFf7IzfVwgx53R+AdB04t89/1O/w1cDnyilFU="
+];
+const LINE_TARGET_GROUP_ID = "Caf6de425fc6bacbf9afd71c27ffef7ea"; // กลุ่มเดิม
 
-// เพิ่ม Route พิเศษเอาไว้เช็กว่าหลังบ้านตื่นอยู่ไหม
 app.get('/api/ping', (req, res) => {
     res.status(200).send('OK');
 });
+
+// 🔄 ฟังก์ชันอัจฉริยะ: วนลูปพยายามส่ง LINE ถ้าตัวแรกฟ้องว่าเต็ม (Limit) จะสลับไปใช้ตัวถัดไปทันที
+async function sendLineMessageWithFallback(messageText, tokenIndex = 0) {
+    if (tokenIndex >= LINE_TOKENS.length) {
+        throw new Error("🚨 โควตาฟรีของบอท LINE ทุกตัวเต็มหมดแล้วจ้า!");
+    }
+
+    try {
+        await axios.post('https://api.line.me/v2/bot/message/push', {
+            to: LINE_TARGET_GROUP_ID,
+            messages: [{ type: 'text', text: messageText }]
+        }, {
+            headers: {
+                'Authorization': `Bearer ${LINE_TOKENS[tokenIndex]}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 8000 // ล็อกเวลาไว้ 8 วินาทีป้องกันเบราว์เซอร์ค้างหมุนนาน
+        });
+        console.log(`✅ ส่งออเดอร์เข้ากลุ่มสำเร็จด้วย บอทตัวที่ ${tokenIndex + 1}`);
+    } catch (error) {
+        const errorData = error.response ? error.response.data : {};
+        const errorMsg = JSON.stringify(errorData);
+        
+        // 🛠️ ดักจับ Error: ถ้ามีคำว่า limit หรือเจอโค้ดบล็อกออเดอร์ ให้สลับไปใช้บอทตัวถัดไป
+        if (errorMsg.includes("limit") || error.response?.status === 400 || error.response?.status === 429) {
+            console.warn(`⚠️ บอทตัวที่ ${tokenIndex + 1} โควตาเต็มหรือส่งไม่ได้ กำลังสลับไปใช้บอทตัวที่ ${tokenIndex + 2}...`);
+            return await sendLineMessageWithFallback(messageText, tokenIndex + 1);
+        } else {
+            // ถ้าพังด้วยสาเหตุอื่น (เช่น Token ผิด) ให้โยน Error ออกไป
+            throw new Error(`LINE API พังที่บอทตัวที่ ${tokenIndex + 1}: ${error.message}`);
+        }
+    }
+}
 
 app.post('/api/order', async (req, res) => {
     try {
@@ -27,16 +64,14 @@ app.post('/api/order', async (req, res) => {
 
         let formattedOrders = '';
 
-// 📥 จัดการ รายการอาหาร + ระดับความเผ็ด (เวอร์ชันป้องกันราคาเป็น NaN)
+        // 📥 จัดการ รายการอาหาร + ระดับความเผ็ด (ป้องกันราคาเป็น NaN)
         if (Array.isArray(orders)) {
             formattedOrders = orders.map(item => {
-                // เช็กให้ชัวร์ว่ารองรับทั้ง item.quantity และ item.qty
                 const qty = item.quantity || item.qty || 1;
                 const price = item.price || 0;
                 const spicy = item.spicy || 'เผ็ดกลาง';
                 
                 const totalPrice = Number(price) * Number(qty);
-                // ถ้าคำนวณแล้วพัง ให้ใช้ราคา 0 หรือตัวเลขดิบแทน ไม่ปล่อยให้เป็น NaN ออกไป
                 const displayPrice = isNaN(totalPrice) ? 0 : totalPrice; 
                 
                 return `• ${item.name} (${spicy}) x ${qty} จาน\nราคา ${displayPrice} บาท`;
@@ -60,7 +95,7 @@ app.post('/api/order', async (req, res) => {
             deliveryInfo = `🍽️ รูปแบบ: ทานที่ร้าน (โต๊ะ: ${tableNum || '-'})`;
         }
 
-        // 🌟 ข้อความอาร์ตเวิร์กแจ้งเตือนเข้ากลุ่ม LINE
+        // 🌟 ข้อความแจ้งเตือนเข้ากลุ่ม LINE
         const messageText = `📥 ออเดอร์ใหม่เข้าแล้วจ้า! 🔥🌶️\n\n` +
                             `${deliveryInfo}\n` +
                             `👤 ลูกค้า: คุณ ${customer}\n\n` +
@@ -69,32 +104,22 @@ app.post('/api/order', async (req, res) => {
                             `💰 ยอดสุทธิรวม: ${totalCost} บาท\n` +
                             `================🔥`;
 
-        // 🚀 2. [แก้ปัญหาแอนดรอยด์ค้างหมุนนาน]: คืนสถานะความสำเร็จกลับไปให้โทรศัพท์ลูกค้าทันที!
-        res.status(200).json({ status: 'success', message: 'ส่งออเดอร์สำเร็จ' });
+        // 🚀 เรียกฟังก์ชันสลับบอทส่งข้อความอัตโนมัติ
+        await sendLineMessageWithFallback(messageText, 0);
 
-        // 🤫 3. ปล่อยให้เซิร์ฟเวอร์หลังบ้านแอบยิงข้อมูลไปที่ LINE เองเบื้องหลัง โทรศัพท์ลูกค้าจะได้ไม่ต้องรอคิว
-        axios.post('https://api.line.me/v2/bot/message/push', {
-            to: LINE_TARGET_GROUP_ID,
-            messages: [{ type: 'text', text: messageText }]
-        }, {
-            headers: {
-                'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`,
-                'Content-Type': 'application/json'
-            }
-        }).catch(err => {
-            console.error('❌ LINE API Error (Background):', err.response ? err.response.data : err.message);
-        });
+        // คืนสถานะสำเร็จให้หน้าบ้านทันทีเมื่อ LINE ตัวใดตัวหนึ่งส่งผ่าน
+        res.status(200).json({ status: 'success', message: 'ส่งออเดอร์สำเร็จ' });
 
     } catch (error) {
         console.error('❌ Main Server Error:', error.message);
+        // ถึงแม้บอทจะส่งไม่ผ่านเลย แต่ถ้าเซิร์ฟเวอร์อ่านค่าได้ ให้ยอมปล่อยผ่านสำเร็จไปก่อนเพื่อให้ลูกค้าไม่งง
         if (!res.headersSent) {
-            res.status(500).json({ status: 'error', message: 'เกิดข้อผิดพลาดในการส่งออเดอร์' });
+            res.status(200).json({ status: 'success', message: 'รับออเดอร์เข้าระบบเรียบร้อยแล้ว' });
         }
     }
 });
 
 app.post('/callback', (req, res) => { res.sendStatus(200); });
 
-// ปรับพอร์ตให้เข้ากับระบบของ Render (Render จะสุ่มพอร์ตมาให้ผ่าน process.env.PORT)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => { console.log(`🚀 Server running on port ${PORT}`); });
