@@ -3,6 +3,7 @@ const cors = require('cors');
 const axios = require('axios');
 const app = express();
 
+// เปิดรับส่งข้อมูลข้ามโดเมนอย่างสมบูรณ์
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -11,12 +12,11 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// 🚀 1. [จุดแก้ไขสำคัญ]: ใส่คู่ Token และ ID กลุ่มใหม่ทั้ง 5 กลุ่มให้ตรงกันครับ 
-// (แก้ Syntax Error ลืมใส่เครื่องหมายคอมมาเรียบร้อยแล้วครับ)
+// 🚀 1. คู่ตั้งค่าบอทและกลุ่ม (อย่าลืมทยอยเอา ID กลุ่มใหม่มาเปลี่ยนในช่อง groupId น้า)
 const LINE_BOT_CONFIGS = [
     {
         token: "D9ExQrK4/2l62hPuPvnrxJnsNUoRogzAJTYQL8Tzr3U38WBPwJcUf26DceTDkG+qNSuJBVEI5E6d6z4qBcr5VOkwwN3wwk8IeWRc/agLjJzKTrG6S4Nren2ZBV4K5P9GeUg45AOA8VBFFY4hHfquXQdB04t89/1O/w1cDnyilFU=", 
-        groupId: "Caf6de425fc6bacbf9afd71c27ffef7ea" // 📦 กลุ่มที่ 1 (กลุ่มเดิมที่โควตาบอทแรกเต็ม)
+        groupId: "Caf6de425fc6bacbf9afd71c27ffef7ea" // 📦 กลุ่มที่ 1 (ตัวเดิมที่โควตาเต็ม)
     },
     {
         token: "nLD8FyKUYl+DTlPrxjM5LfCok5WQB6e+2018rl2aVGXx1bcoZB7TVKu0Z3dUpvtqUvL/3ddpHbQT4mlPPa8r669UHktFYHxpiqrUIqdsfDRZPRy8wJPIowVmQZz6Hh21nB3uACfYu+aOi/vqBi+PgwdB04t89/1O/w1cDnyilFU=", 
@@ -36,11 +36,16 @@ const LINE_BOT_CONFIGS = [
     }
 ];
 
+// หน้าแรกป้องกันเซิร์ฟเวอร์เงียบ
+app.get('/', (req, res) => {
+    res.status(200).send('ระบบหลังบ้านแซ่บลืมผัวทำงานปกติจ้า 🌶️🔥');
+});
+
 app.get('/api/ping', (req, res) => {
     res.status(200).send('OK');
 });
 
-// 🔄 ฟังก์ชันสลับกลุ่มอัจฉริยะ: ดักจับลิมิตบอทเก่า แล้วสลับยิงเข้ากลุ่มของบอทตัวใหม่ให้ทันที
+// 🔄 ฟังก์ชันสลับกลุ่มอัตโนมัติ
 async function sendLineMessageWithFallback(messageText, botIndex = 0) {
     if (botIndex >= LINE_BOT_CONFIGS.length) {
         throw new Error("🚨 โควตาฟรีของบอท LINE ทุกกลุ่มเต็มหมดแล้วจ้า!");
@@ -48,15 +53,14 @@ async function sendLineMessageWithFallback(messageText, botIndex = 0) {
 
     const currentBot = LINE_BOT_CONFIGS[botIndex];
 
-    // ป้องกันกรณีที่ยังก๊อปปี้ ID กลุ่มใหม่มาวางไม่ครบ ระบบจะได้ข้ามไปตัวที่พร้อมทำงานก่อนได้ลื่นไหล
     if (!currentBot.groupId || currentBot.groupId.includes("วาง_GROUP")) {
-        console.warn(`⚠️ บอทกลุ่มที่ ${botIndex + 1} ยังไม่ได้ใส่ Group ID ข้ามไปสลับตัวถัดไป...`);
+        console.warn(`⚠️ บอทกลุ่มที่ ${botIndex + 1} ยังไม่ได้ใส่รหัสกลุ่ม ข้ามไปสลับตัวถัดไป...`);
         return await sendLineMessageWithFallback(messageText, botIndex + 1);
     }
 
     try {
         await axios.post('https://api.line.me/v2/bot/message/push', {
-            to: currentBot.groupId, // ยิงตรงหาไอดีกลุ่มของบอทตัวนั้นๆ
+            to: currentBot.groupId,
             messages: [{ type: 'text', text: messageText }]
         }, {
             headers: {
@@ -70,12 +74,11 @@ async function sendLineMessageWithFallback(messageText, botIndex = 0) {
         const errorData = error.response ? error.response.data : {};
         const errorMsg = JSON.stringify(errorData);
         
-        // 🛠️ ตรวจจับ Error ลิมิตโควตาเต็ม หรือยิงไม่ผ่าน -> ย้ายไปส่งกลุ่มลำดับถัดไปทันที
         if (errorMsg.includes("limit") || error.response?.status === 400 || error.response?.status === 429) {
-            console.warn(`⚠️ บอth กลุ่มที่ ${botIndex + 1} โควตาเต็มแล้ว กำลังสลับไปส่งที่ บอทกลุ่มที่ ${botIndex + 2}...`);
+            console.warn(`⚠️ บอทกลุ่มที่ ${botIndex + 1} ส่งไม่ได้ กำลังโยนไป บอทกลุ่มที่ ${botIndex + 2}...`);
             return await sendLineMessageWithFallback(messageText, botIndex + 1);
         } else {
-            throw new Error(`LINE API พังที่กลุ่มลำดับที่ ${botIndex + 1}: ${error.message}`);
+            throw new Error(`LINE API พังที่กลุ่ม ${botIndex + 1}: ${error.message}`);
         }
     }
 }
@@ -90,11 +93,8 @@ app.post('/api/order', async (req, res) => {
                 const qty = item.quantity || item.qty || 1;
                 const price = item.price || 0;
                 const spicy = item.spicy || 'เผ็ดกลาง';
-                
                 const totalPrice = Number(price) * Number(qty);
-                const displayPrice = isNaN(totalPrice) ? 0 : totalPrice; 
-                
-                return `• ${item.name} (${spicy}) x ${qty} จาน\nราคา ${displayPrice} บาท`;
+                return `• ${item.name} (${spicy}) x ${qty} จาน\nราคา ${isNaN(totalPrice) ? 0 : totalPrice} บาท`;
             }).join('\n\n'); 
         } else {
             formattedOrders = orders || 'ไม่มีรายการอาหาร';
@@ -120,9 +120,7 @@ app.post('/api/order', async (req, res) => {
                             `💰 ยอดสุทธิรวม: ${totalCost} บาท\n` +
                             `================🔥`;
 
-        // สั่งทำงานระบบวนลูปกระจายกลุ่มแชร์โควตา
         await sendLineMessageWithFallback(messageText, 0);
-
         res.status(200).json({ status: 'success', message: 'ส่งออเดอร์สำเร็จ' });
 
     } catch (error) {
@@ -135,5 +133,8 @@ app.post('/api/order', async (req, res) => {
 
 app.post('/callback', (req, res) => { res.sendStatus(200); });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => { console.log(`🚀 Server running on port ${PORT}`); });
+// 🛠️ แก้จุดเปิดพอร์ตใหม่ให้อ่านค่าพอร์ตของ Render ได้แม่นยำ 100%
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, '0.0.0.0', () => { 
+    console.log(`🚀 เซิร์ฟเวอร์เปิดใช้งานสำเร็จที่พอร์ต: ${PORT}`); 
+});
