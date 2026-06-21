@@ -3,6 +3,7 @@ const cors = require('cors');
 const axios = require('axios');
 const app = express();
 
+// เปิดรับส่งข้อมูลข้ามโดเมนอย่างสมบูรณ์
 app.use(cors({
     origin: '*', 
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -11,13 +12,31 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// 🚀 ระบบตั้งค่าสลับบอทและกลุ่มแบบไร้รอยต่อ 5 ระดับ!
 const LINE_BOT_CONFIGS = [
     {
+        token: "D9ExQrK4/2l62hPuPvnrxJnsNUoRogzAJTYQL8Tzr3U38WBPwJcUf26DceTDkG+qNSuJBVEI5E6d6z4qBcr5VOkwwN3wwk8IeWRc/agLjJzKTrG6S4Nren2ZBV4K5P9GeUg45AOA8VBFFY4hHfquXQdB04t89/1O/w1cDnyilFU=", 
+        groupId: "Caf6de425fc6bacbf9afd71c27ffef7ea" // 📦 กลุ่มที่ 1 (ตัวหลักที่โควตาเต็ม)
+    },
+    {
+        token: "nLD8FyKUYl+DTlPrxjM5LfCok5WQB6e+2018rl2aVGXx1bcoZB7TVKu0Z3dUpvtqUvL/3ddpHbQT4mlPPa8r669UHktFYHxpiqrUIqdsfDRZPRy8wJPIowVmQZz6Hh21nB3uACfYu+aOi/vqBi+PgwdB04t89/1O/w1cDnyilFU=", 
+        groupId: "C1687679de4aed716960fb107542f6aee" // 📦 กลุ่มที่ 2
+    },
+    {
+        token: "Hn4AAbZi9vtZKzYbV6P388u8qazpjWzbRH9lR2E/CaCsMUWNBT2X2y0jMVileg6DZVju1jDkSkn51zOmF3HNRgpm3xEK8HL7Yme40y0zKPHAyRQwAaVj/w7n0601E+nJYRJu2AznmHILCTkQ9oqQkgdB04t89/1O/w1cDnyilFU=", 
+        groupId: "C01cb95043d982c3f5a109508d9a87445" // 📦 กลุ่มที่ 3
+    },
+    {
+        token: "A/YWNv3x+KgIMV4DKrToGZsW2r6fzscXk0mZTlONReLBwIxDQLVRdvHWQxHAuIl3UHtBAy7wW0SHgxUXEXEG5jq6Dmhj6rUN8/TwqZPuXD9S67ehPIkJeP99xzEqgWBc+3MPuXDZAgLHT8k8uiRCOwdB04t89/1O/w1cDnyilFU=", 
+        groupId: "C8cd5795991cd8e7e9ffe4873061af450" // 📦 กลุ่มที่ 4
+    },
+    {
         token: "RiTyu58y5aqBgH5+yXINT+wY0eBOCM4ok1q4TfS/HyNjXmFpnG/ktmcbFobzhh2bcesQxUcCiOmV28gQmu26MyiahEOOc9N10gJK/sfTcNajXuLr0n6iOBBqS0lxL483q5oKQEFFf7IzfVwgx53R+AdB04t89/1O/w1cDnyilFU=", 
-        groupId: "วาง_GROUP_ID_ของกลุ่มใหม่ที่_2_ตรงนี้" 
+        groupId: "C264f89b5577d3246069b76bdcac39418" // 📦 กลุ่มที่ 5 (แก้ไขตัวหนังสือไทยออกแล้ว)
     }
 ];
 
+// หน้าแรกป้องกันเซิร์ฟเวอร์เงียบ
 app.get('/', (req, res) => {
     res.status(200).send('ระบบหลังบ้านแซ่บลืมผัวทำงานปกติจ้า 🌶️🔥');
 });
@@ -26,27 +45,7 @@ app.get('/api/ping', (req, res) => {
     res.status(200).send('OK');
 });
 
-// 🔍 บรรทัดนี้จะดักจับสิ่งทีมาจาก LINE Webhook แล้วพ่น ID กลุ่มลงหน้า Logs ชัดๆ เลยครับ
-app.post('/callback', (req, res) => {
-    try {
-        const events = req.body.events;
-        if (events && events.length > 0) {
-            events.forEach(event => {
-                // ดึงรหัสจาก source ไม่ว่าจะเป็น group หรือ room
-                if (event.source && event.source.groupId) {
-                    console.log('====================================');
-                    console.log('📌 พบ GROUP ID ของพี่โอ๊ตแล้วครับ:');
-                    console.log(`🆔 รหัสกลุ่มคือ: ${event.source.groupId}`);
-                    console.log('====================================');
-                }
-            });
-        }
-    } catch (err) {
-        console.error('Error parsing webhook:', err.message);
-    }
-    res.sendStatus(200);
-});
-
+// 🔄 ฟังก์ชันสลับกลุ่มอัตโนมัติเมื่อโควตาเต็ม
 async function sendLineMessageWithFallback(messageText, botIndex = 0) {
     if (botIndex >= LINE_BOT_CONFIGS.length) {
         throw new Error("🚨 โควตาฟรีของบอท LINE ทุกกลุ่มเต็มหมดแล้วจ้า!");
@@ -75,7 +74,9 @@ async function sendLineMessageWithFallback(messageText, botIndex = 0) {
         const errorData = error.response ? error.response.data : {};
         const errorMsg = JSON.stringify(errorData);
         
+        // ถ้าเจอลิมิตเต็ม หรือสิทธิ์ส่งไม่ได้ ให้โยนงานไปบอทคิวถัดไปทันที
         if (errorMsg.includes("limit") || error.response?.status === 400 || error.response?.status === 429) {
+            console.warn(`⚠️ บอทกลุ่มที่ ${botIndex + 1} โควตาเต็มหรือส่งไม่ได้ กำลังโยนไป บอทกลุ่มที่ ${botIndex + 2}...`);
             return await sendLineMessageWithFallback(messageText, botIndex + 1);
         } else {
             throw new Error(`LINE API พังที่กลุ่ม ${botIndex + 1}: ${error.message}`);
@@ -130,6 +131,8 @@ app.post('/api/order', async (req, res) => {
         }
     }
 });
+
+app.post('/callback', (req, res) => { res.sendStatus(200); });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => { 
