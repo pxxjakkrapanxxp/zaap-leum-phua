@@ -506,6 +506,15 @@
             <option value="12">โต๊ะ 12</option>
         </select>
     </div>
+
+    <div id="deliveryFields" style="display: none; background: #222; border: 1px solid #ff4747; padding: 12px; margin: 0 10px 10px 10px; border-radius: 6px;">
+        <div style="margin-bottom: 8px;">
+            <input type="text" id="deliveryPhone" oninput="validateOrderStatus()" placeholder="ระบุเบอร์โทรศัพท์ติดต่อ *" style="width: 100%; padding: 6px; border: 1px solid #444; background: #fff; color: #000; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div>
+            <textarea id="deliveryAddress" oninput="validateOrderStatus()" placeholder="ระบุที่อยู่จัดส่งโดยละเอียด *" rows="2" style="width: 100%; padding: 6px; border: 1px solid #444; background: #fff; color: #000; border-radius: 4px; box-sizing: border-box; resize: none;"></textarea>
+        </div>
+    </div>
 </div>
 
 <div class="swiper">
@@ -1632,24 +1641,22 @@ const swiper = new Swiper('.swiper', {
     pagination: { el: '.swiper-pagination', clickable: true },
 });
 
-// ฟังก์ชันควบคุมการ ซ่อน/แสดง ช่องเลือกเลขโต๊ะ และช่องที่อยู่เดลิเวอรี่
+// ฟังก์ชันควบคุมการ ซ่อน/แสดง ช่องเลือกเลขโต๊ะ และช่องที่อยู่เดลิเวอรี่ (เวอร์ชั่นแก้ไขตามภาพจริง)
 function handleOrderTypeChange() {
     const orderStyle = document.getElementById("tableNumber").value;
     const tableInput = document.getElementById("actualTableNum");
     const deliveryBox = document.getElementById("deliveryFields");
     
-    // ซ่อนทุกอย่างไว้ก่อนเริ่มตรวจสอบเงื่อนไข
     if (tableInput) tableInput.style.display = "none";
     if (deliveryBox) deliveryBox.style.display = "none";
     
-    if (orderStyle === "ทานที่ร้าน") {
-        // แสดง Dropdown เลือกโต๊ะ (ใช้ block หรือ inline-block เพื่อให้จัดเรียงใน input-group สวยงาม)
+    if (orderStyle.includes("ทานที่ร้าน")) {
         if (tableInput) tableInput.style.display = "block"; 
     } else {
-        // ถ้าเปลี่ยนไปเลือกอย่างอื่น (ห่อกลับบ้าน / จัดส่งถึงบ้าน) ให้ล้างค่าเลขโต๊ะที่เคยเลือกค้างไว้
         if (tableInput) tableInput.value = ""; 
         
-        if (orderStyle === "จัดส่งถึงบ้าน") {
+        // ใช้ .includes ดักจับคำว่า "จัดส่ง" ไม่ว่าค่าจะมาเป็นแบบไหน กล่องก็เด้งแน่นอนครับ!
+        if (orderStyle.includes("จัดส่ง")) {
             if (deliveryBox) deliveryBox.style.display = "block"; 
         }
     }
@@ -1860,7 +1867,7 @@ function refreshAllTotals() {
 }
 
 // ==========================================
-// 🛡️ ระบบการตรวจสอบสถานะแบบใหม่ (พิมพ์เลขโต๊ะเอง)
+// 🛡️ ระบบการตรวจสอบสถานะแบบใหม่ (จิ้มเลือกหมายเลขโต๊ะ 1-12)
 // ==========================================
 function validateOrderStatus() {
     try {
@@ -1876,20 +1883,20 @@ function validateOrderStatus() {
         
         let isFormValid = false;
 
-        // เช็กความถูกต้องของการกรอกฟอร์มตามเงื่อนไข Dropdown
+        // 🛠️ เปลี่ยนมาเช็กเงื่อนไขด้วย .includes ทั้งหมดเพื่อให้คุยกับค่าใน HTML รู้เรื่องครับ
         if (currentName !== "" && currentStyle !== "") {
-            if (currentStyle === "ทานที่ร้าน") {
+            if (currentStyle.includes("ทานที่ร้าน")) {
                 const tableNumEl = document.getElementById("actualTableNum");
-                if (tableNumEl && tableNumEl.value.trim() !== "") {
-                    isFormValid = true; // บังคับพิมพ์เลขโต๊ะ
+                if (tableNumEl && tableNumEl.value !== "") {
+                    isFormValid = true; // บังคับจิ้มเลือกหมายเลขโต๊ะ 1-12
                 }
-            } else if (currentStyle === "จัดส่งถึงบ้าน") {
+            } else if (currentStyle.includes("จัดส่ง")) {
                 const addrInput = document.getElementById("deliveryAddress");
                 const phoneInput = document.getElementById("deliveryPhone");
                 if (addrInput && phoneInput && addrInput.value.trim() !== "" && phoneInput.value.trim() !== "") {
-                    isFormValid = true; // บังคับกรอกที่อยู่และเบอร์
+                    isFormValid = true; // บังคับกรอกที่อยู่และเบอร์ติดต่อเดลิเวอรี่
                 }
-            } else if (currentStyle === "ห่อกลับบ้าน") {
+            } else if (currentStyle.includes("ห่อกลับบ้าน")) {
                 isFormValid = true; // ผ่านทันที
             }
         }
@@ -1928,14 +1935,13 @@ function validateOrderStatus() {
 function triggerSummaryPopup() {
     document.getElementById('summaryCustomer').innerText = document.getElementById('custName').value;
     
-    // ดึงข้อมูลรูปแบบมาแสดงผลบนหัวบิลให้ตรงตามที่พิมพ์หรือเลือกไว้
     const orderStyle = document.getElementById('tableNumber').value;
     if (orderStyle === "ทานที่ร้าน") {
-        const tableNum = document.getElementById("actualTableNum").value.trim();
-        document.getElementById('summaryTable').innerText = "🍽️ โต๊ะ: " + tableNum;
+        const tableNum = document.getElementById("actualTableNum").value;
+        document.getElementById('summaryTable').innerText = tableNum ? "🍽️ โต๊ะ: " + tableNum : "🍽️ ไม่ได้ระบุโต๊ะ";
     } else if (orderStyle === "ห่อกลับบ้าน") {
         document.getElementById('summaryTable').innerText = "🛍️ ห่อกลับบ้าน";
-    } else if (orderStyle === "จัดส่งถึงบ้าน") {
+    } else if (orderStyle === "จัดส่งถึงบ้าน" || orderStyle === "จัดส่ง") {
         document.getElementById('summaryTable').innerText = "🚚 จัดส่งถึงบ้าน (เดลิเวอรี่)";
     }
     
@@ -2075,14 +2081,15 @@ function sendOrderToKitchen() {
     var deliveryAddress = "";
     var deliveryPhone = "";
 
-    // คัดแยกค่าและจัดโครงสร้างตามช้อยส์รูปแบบใหม่ของร้าน
+    // คัดแยกค่าและจัดโครงสร้างตามช้อยส์รูปแบบใหม่ของร้านค้ารุ่นเลือกโต๊ะ Dropdown
     if (orderStyle === "ทานที่ร้าน") {
         orderType = "ทานที่ร้าน";
-        tableName = document.getElementById("actualTableNum") ? "โต๊ะ " + document.getElementById("actualTableNum").value.trim() : "ไม่ได้ระบุโต๊ะ";
+        const selectedTableVal = document.getElementById("actualTableNum") ? document.getElementById("actualTableNum").value : "";
+        tableName = selectedTableVal ? "โต๊ะ " + selectedTableVal : "ไม่ได้ระบุโต๊ะ";
     } else if (orderStyle === "ห่อกลับบ้าน") {
         orderType = "ห่อกลับบ้าน";
         tableName = "🛍️ ห่อกลับบ้าน";
-    } else if (orderStyle === "จัดส่งถึงบ้าน") {
+    } else if (orderStyle === "จัดส่งถึงบ้าน" || orderStyle === "จัดส่ง") {
         orderType = "จัดส่ง";
         tableName = "🚚 จัดส่งถึงบ้าน";
         
