@@ -27,17 +27,22 @@ app.post('/api/order', async (req, res) => {
 
         let formattedOrders = '';
 
-        // 📥 จัดการ รายการอาหาร + ระดับความเผ็ด
+// 📥 จัดการ รายการอาหาร + ระดับความเผ็ด (เวอร์ชันป้องกันราคาเป็น NaN)
         if (Array.isArray(orders)) {
             formattedOrders = orders.map(item => {
+                // เช็กให้ชัวร์ว่ารองรับทั้ง item.quantity และ item.qty
+                const qty = item.quantity || item.qty || 1;
                 const price = item.price || 0;
-                const qty = item.quantity || 1;
                 const spicy = item.spicy || 'เผ็ดกลาง';
                 
-                return `• ${item.name} (${spicy}) x ${qty} จาน\nราคา ${price * qty} บาท`;
+                const totalPrice = Number(price) * Number(qty);
+                // ถ้าคำนวณแล้วพัง ให้ใช้ราคา 0 หรือตัวเลขดิบแทน ไม่ปล่อยให้เป็น NaN ออกไป
+                const displayPrice = isNaN(totalPrice) ? 0 : totalPrice; 
+                
+                return `• ${item.name} (${spicy}) x ${qty} จาน\nราคา ${displayPrice} บาท`;
             }).join('\n\n'); 
         } else {
-            formattedOrders = orders;
+            formattedOrders = orders || 'ไม่มีรายการอาหาร';
         }
 
         // 📝 จัดการประเภทการเสิร์ฟ / ข้อมูลจัดส่ง
