@@ -3,11 +3,23 @@ const cors = require('cors');
 const axios = require('axios');
 const app = express();
 
-app.use(cors());
+// 🛠️ 1. ปรับ CORS ตัวเต็มเพื่อเคลียร์ทางให้เบราว์เซอร์ Android Chrome ยิงผ่านได้ฉลุยไม่มีบล็อก
+app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    credentials: true
+}));
+
 app.use(express.json());
 
 const LINE_ACCESS_TOKEN = "D9ExQrK4/2l62hPuPvnrxJnsNUoRogzAJTYQL8Tzr3U38WBPwJcUf26DceTDkG+qNSuJBVEI5E6d6z4qBcr5VOkwwN3wwk8IeWRc/agLjJzKTrG6S4Nren2ZBV4K5P9GeUg45AOA8VBFFY4hHfquXQdB04t89/1O/w1cDnyilFU=";
 const LINE_TARGET_GROUP_ID = "Caf6de425fc6bacbf9afd71c27ffef7ea";
+
+// เพิ่ม Route พิเศษเอาไว้เช็กว่าหลังบ้านตื่นอยู่ไหม
+app.get('/api/ping', (req, res) => {
+    res.status(200).send('OK');
+});
 
 app.post('/api/order', async (req, res) => {
     try {
@@ -39,7 +51,6 @@ app.post('/api/order', async (req, res) => {
         } else if (orderType.includes('ห่อกลับบ้าน')) {
             deliveryInfo = `🛍️ รูปแบบ: ห่อกลับบ้าน`;
         } else {
-            // 🛠️ แก้ไขตรงนี้: ลบคำว่า "โต๊ะที่" หรือ "โต๊ะ" ออกไปให้เหลือแต่ตัวเลข เพื่อไม่ให้คำว่าโต๊ะซ้ำซ้อน
             const tableNum = orderType.replace(/โต๊ะที่|โต๊ะ/g, '').trim();
             deliveryInfo = `🍽️ รูปแบบ: ทานที่ร้าน (โต๊ะ: ${tableNum || '-'})`;
         }
@@ -53,8 +64,11 @@ app.post('/api/order', async (req, res) => {
                             `💰 ยอดสุทธิรวม: ${totalCost} บาท\n` +
                             `================🔥`;
 
-        // ส่ง Push Message เข้ากลุ่ม LINE
-        await axios.post('https://api.line.me/v2/bot/message/push', {
+        // 🚀 2. [แก้ปัญหาแอนดรอยด์ค้างหมุนนาน]: คืนสถานะความสำเร็จกลับไปให้โทรศัพท์ลูกค้าทันที!
+        res.status(200).json({ status: 'success', message: 'ส่งออเดอร์สำเร็จ' });
+
+        // 🤫 3. ปล่อยให้เซิร์ฟเวอร์หลังบ้านแอบยิงข้อมูลไปที่ LINE เองเบื้องหลัง โทรศัพท์ลูกค้าจะได้ไม่ต้องรอคิว
+        axios.post('https://api.line.me/v2/bot/message/push', {
             to: LINE_TARGET_GROUP_ID,
             messages: [{ type: 'text', text: messageText }]
         }, {
@@ -62,16 +76,20 @@ app.post('/api/order', async (req, res) => {
                 'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`,
                 'Content-Type': 'application/json'
             }
+        }).catch(err => {
+            console.error('❌ LINE API Error (Background):', err.response ? err.response.data : err.message);
         });
 
-        res.status(200).json({ status: 'success', message: 'ส่งออเดอร์สำเร็จ' });
     } catch (error) {
-        console.error('❌ Error:', error.response ? error.response.data : error.message);
-        res.status(500).json({ status: 'error', message: 'เกิดข้อผิดพลาดในการส่งออเดอร์' });
+        console.error('❌ Main Server Error:', error.message);
+        if (!res.headersSent) {
+            res.status(500).json({ status: 'error', message: 'เกิดข้อผิดพลาดในการส่งออเดอร์' });
+        }
     }
 });
 
 app.post('/callback', (req, res) => { res.sendStatus(200); });
 
+// ปรับพอร์ตให้เข้ากับระบบของ Render (Render จะสุ่มพอร์ตมาให้ผ่าน process.env.PORT)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => { console.log(`🚀 Server running on port ${PORT}`); });
