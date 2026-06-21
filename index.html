@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
         :root {
@@ -1745,7 +1747,14 @@ function addItemToCart() {
     const menuPrice = parseInt(document.getElementById('priceSelector').value);
 
     if(!menuName || !menuPrice) {
-        alert("กรุณาเลือกเมนูและราคาให้ครบถ้วนด้วยครับ");
+        // 🔥 จุดแก้ไขที่ 1: แจ้งเตือนเมื่อลืมเลือกเมนู/ราคา
+        Swal.fire({
+            title: 'ข้อมูลไม่ครบถ้วน',
+            text: 'กรุณาเลือกเมนูและราคาให้ครบถ้วนด้วยครับ',
+            icon: 'warning',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#ff3131'
+        });
         return;
     }
 
@@ -1781,6 +1790,94 @@ function addItemToCart() {
 
 function handleHotspotClick(e, id, name, price) {
     initCartItem(id, name, price);
+}
+
+// ลบคำสั่ง confirm() ระบบเก่าออก เพื่อใช้ความนุ่มนวลของสไตล์ร้านเราแทน
+function updateSummaryItemQty(type, key, amount) {
+    if (type === 'normal') {
+        if (orderCart[key]) {
+            orderCart[key].qty += amount;
+            if (orderCart[key].qty < 0) orderCart[key].qty = 0;
+            
+            const targetBadge = document.getElementById(`badge-${key}`);
+            if (targetBadge) {
+                targetBadge.innerText = orderCart[key].qty;
+            } else {
+                const controlEl = document.getElementById(`control-${key}`);
+                if (controlEl) {
+                    const badgeEl = controlEl.querySelector('.badge');
+                    if (badgeEl) badgeEl.innerText = orderCart[key].qty;
+                }
+            }
+        }
+    } else if (type === 'custom') {
+        if (customMenuCart[key]) {
+            customMenuCart[key].qty += amount;
+            if (customMenuCart[key].qty <= 0) customMenuCart[key].qty = 1;
+        }
+    }
+    
+    refreshAllTotals();
+    validateOrderStatus(); 
+
+    if (finalQty === 0) closeSummaryPopup();
+    else triggerSummaryPopup();
+}
+
+// 🔥 จุดแก้ไขที่ 2: เปลี่ยนระบบลบรายการอาหารปกติในตะกร้า
+function removeNormalItemFromSummary(id) {
+    Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: 'ต้องการลบรายการอาหารนี้ใช่หรือไม่?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#00c853',
+        cancelButtonColor: '#ff3131',
+        confirmButtonText: 'ใช่, ลบเลย',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (orderCart[id]) orderCart[id].qty = 0;
+            
+            const targetBadge = document.getElementById(`badge-${id}`);
+            if (targetBadge) {
+                targetBadge.innerText = 0;
+            } else {
+                const controlEl = document.getElementById(`control-${id}`);
+                if (controlEl) {
+                    const badgeEl = controlEl.querySelector('.badge');
+                    if (badgeEl) badgeEl.innerText = 0;
+                }
+            }
+
+            refreshAllTotals();
+            validateOrderStatus();
+            if (finalQty === 0) closeSummaryPopup();
+            else triggerSummaryPopup(); 
+        }
+    });
+}
+
+// 🔥 จุดแก้ไขที่ 3: เปลี่ยนระบบลบรายการอาหารแบบคัสตอมในตะกร้า
+function removeCustomItemFromSummary(index) {
+    Swal.fire({
+        title: 'ยืนยันการลบ?',
+        text: 'ต้องการลบรายการอาหารนี้ใช่หรือไม่?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#00c853',
+        cancelButtonColor: '#ff3131',
+        confirmButtonText: 'ใช่, ลบเลย',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            customMenuCart.splice(index, 1);
+            refreshAllTotals();
+            validateOrderStatus();
+            if (finalQty === 0) closeSummaryPopup();
+            else triggerSummaryPopup();
+        }
+    });
 }
 
 function initCartItem(id, name, price) {
@@ -1866,9 +1963,6 @@ function refreshAllTotals() {
     validateOrderStatus();
 }
 
-// ==========================================
-// 🛡️ ระบบการตรวจสอบสถานะแบบใหม่ (จิ้มเลือกหมายเลขโต๊ะ 1-12)
-// ==========================================
 function validateOrderStatus() {
     try {
         const nameEl = document.getElementById('custName');
@@ -1883,21 +1977,20 @@ function validateOrderStatus() {
         
         let isFormValid = false;
 
-        // 🛠️ เปลี่ยนมาเช็กเงื่อนไขด้วย .includes ทั้งหมดเพื่อให้คุยกับค่าใน HTML รู้เรื่องครับ
         if (currentName !== "" && currentStyle !== "") {
             if (currentStyle.includes("ทานที่ร้าน")) {
                 const tableNumEl = document.getElementById("actualTableNum");
                 if (tableNumEl && tableNumEl.value !== "") {
-                    isFormValid = true; // บังคับจิ้มเลือกหมายเลขโต๊ะ 1-12
+                    isFormValid = true; 
                 }
             } else if (currentStyle.includes("จัดส่ง")) {
                 const addrInput = document.getElementById("deliveryAddress");
                 const phoneInput = document.getElementById("deliveryPhone");
                 if (addrInput && phoneInput && addrInput.value.trim() !== "" && phoneInput.value.trim() !== "") {
-                    isFormValid = true; // บังคับกรอกที่อยู่และเบอร์ติดต่อเดลิเวอรี่
+                    isFormValid = true; 
                 }
             } else if (currentStyle.includes("ห่อกลับบ้าน")) {
-                isFormValid = true; // ผ่านทันที
+                isFormValid = true; 
             }
         }
 
@@ -1929,9 +2022,6 @@ function validateOrderStatus() {
     }
 }
 
-// ==========================================
-// 📝 เปิดหน้าต่างสรุปรายการ (Popup Summary)
-// ==========================================
 function triggerSummaryPopup() {
     document.getElementById('summaryCustomer').innerText = document.getElementById('custName').value;
     
@@ -2000,69 +2090,6 @@ function triggerSummaryPopup() {
     document.getElementById('summaryModal').style.display = 'flex';
 }
 
-function updateSummaryItemQty(type, key, amount) {
-    if (type === 'normal') {
-        if (orderCart[key]) {
-            orderCart[key].qty += amount;
-            if (orderCart[key].qty < 0) orderCart[key].qty = 0;
-            
-            const targetBadge = document.getElementById(`badge-${key}`);
-            if (targetBadge) {
-                targetBadge.innerText = orderCart[key].qty;
-            } else {
-                const controlEl = document.getElementById(`control-${key}`);
-                if (controlEl) {
-                    const badgeEl = controlEl.querySelector('.badge');
-                    if (badgeEl) badgeEl.innerText = orderCart[key].qty;
-                }
-            }
-        }
-    } else if (type === 'custom') {
-        if (customMenuCart[key]) {
-            customMenuCart[key].qty += amount;
-            if (customMenuCart[key].qty <= 0) customMenuCart[key].qty = 1;
-        }
-    }
-    
-    refreshAllTotals();
-    validateOrderStatus(); 
-
-    if (finalQty === 0) closeSummaryPopup();
-    else triggerSummaryPopup();
-}
-
-function removeNormalItemFromSummary(id) {
-    if (confirm("ต้องการลบรายการนี้ใช่หรือไม่?")) {
-        if (orderCart[id]) orderCart[id].qty = 0;
-        
-        const targetBadge = document.getElementById(`badge-${id}`);
-        if (targetBadge) {
-            targetBadge.innerText = 0;
-        } else {
-            const controlEl = document.getElementById(`control-${id}`);
-            if (controlEl) {
-                const badgeEl = controlEl.querySelector('.badge');
-                if (badgeEl) badgeEl.innerText = 0;
-            }
-        }
-
-        refreshAllTotals();
-        validateOrderStatus();
-        if (finalQty === 0) closeSummaryPopup();
-        else triggerSummaryPopup(); 
-    }
-}
-
-function removeCustomItemFromSummary(index) {
-    if (confirm("ต้องการลบรายการนี้ใช่หรือไม่?")) {
-        customMenuCart.splice(index, 1);
-        refreshAllTotals();
-        validateOrderStatus();
-        if (finalQty === 0) closeSummaryPopup();
-        else triggerSummaryPopup();
-    }
-}
-
 function closeSummaryPopup() {
     document.getElementById('summaryModal').style.display = 'none';
 }
@@ -2081,7 +2108,6 @@ function sendOrderToKitchen() {
     var deliveryAddress = "";
     var deliveryPhone = "";
 
-    // คัดแยกค่าและจัดโครงสร้างตามช้อยส์รูปแบบใหม่ของร้านค้ารุ่นเลือกโต๊ะ Dropdown
     if (orderStyle === "ทานที่ร้าน") {
         orderType = "ทานที่ร้าน";
         const selectedTableVal = document.getElementById("actualTableNum") ? document.getElementById("actualTableNum").value : "";
@@ -2099,7 +2125,14 @@ function sendOrderToKitchen() {
         deliveryPhone = phoneInput ? phoneInput.value.trim() : "";
 
         if (!deliveryAddress || !deliveryPhone) {
-            alert("กรุณากรอกข้อมูลที่อยู่จัดส่งและเบอร์ติดต่อให้ครบถ้วนด้วยจ้า");
+            // 🔥 จุดแก้ไขที่ 4 (ย่อย): แจ้งเตือนเมื่อเดลิเวอรี่กรอกข้อมูลไม่ครบ
+            Swal.fire({
+                title: 'ข้อมูลจัดส่งไม่ครบ',
+                text: 'กรุณากรอกข้อมูลที่อยู่จัดส่งและเบอร์ติดต่อให้ครบถ้วนด้วยจ้า',
+                icon: 'warning',
+                confirmButtonText: 'รับทราบ',
+                confirmButtonColor: '#ff3131'
+            });
             return;
         }
     }
@@ -2109,7 +2142,13 @@ function sendOrderToKitchen() {
     }
 
     if (!customerName || customerName === "ไม่ระบุชื่อ" || !orderStyle || orderStyle === "") {
-        alert("กรุณากรอกข้อมูลชื่อและเลือกรูปแบบการสั่งอาหารให้ครบถ้วนก่อนสั่งอาหารจ้า");
+        Swal.fire({
+            title: 'ข้อมูลไม่ครบ',
+            text: 'กรุณากรอกข้อมูลชื่อและเลือกรูปแบบการสั่งอาหารให้ครบถ้วนก่อนสั่งอาหารจ้า',
+            icon: 'warning',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#ff3131'
+        });
         return;
     }
 
@@ -2145,7 +2184,13 @@ function sendOrderToKitchen() {
     }
 
     if (ordersArray.length === 0) {
-        alert("ยังไม่มีอาหารในตะกร้าเลยจ้า เลือกเมนูแซ่บๆ ก่อนนะ");
+        Swal.fire({
+            title: 'ตะกร้าว่างเปล่า',
+            text: 'ยังไม่มีอาหารในตะกร้าเลยจ้า เลือกเมนูแซ่บๆ ก่อนนะ',
+            icon: 'info',
+            confirmButtonText: 'ไปเลือกเมนู',
+            confirmButtonColor: '#ff3131'
+        });
         return;
     }
 
@@ -2177,13 +2222,28 @@ function sendOrderToKitchen() {
         return response.json();
     })
     .then(function(result) {
-        alert("🎉 ส่งออเดอร์เข้าครัวสำเร็จแล้วจ้า รอแซ่บนะคะ!");
-        if (typeof orderCart !== 'undefined') orderCart = {};
-        if (typeof customMenuCart !== 'undefined') customMenuCart = [];
-        location.reload(); 
+        // 🔥 จุดแก้ไขที่ 5: ส่งเข้าครัวสำเร็จ! เปลี่ยนแจ้งเตือนแบบไร้ชื่อเว็บ
+        Swal.fire({
+            title: 'สำเร็จ!',
+            text: '🎉 ส่งออเดอร์เข้าครัวสำเร็จแล้วจ้า รอแซ่บนะคะ!',
+            icon: 'success',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#00c853'
+        }).then(function() {
+            if (typeof orderCart !== 'undefined') orderCart = {};
+            if (typeof customMenuCart !== 'undefined') customMenuCart = [];
+            location.reload(); 
+        });
     })
     .catch(function(error) {
-        alert("เกิดข้อผิดพลาด! กรุณาตรวจสอบเซิร์ฟเวอร์หลังบ้านครับ");
+        // 🔥 จุดแก้ไขที่ 6: เกิดข้อผิดพลาด/หลังบ้านพัง แจ้งเตือนแบบไร้ชื่อเว็บ
+        Swal.fire({
+            title: 'เกิดข้อผิดพลาด!',
+            text: 'กรุณาตรวจสอบเซิร์ฟเวอร์หลังบ้านครับ',
+            icon: 'error',
+            confirmButtonText: 'ปิด',
+            confirmButtonColor: '#ff3131'
+        });
         if (confirmBtn) {
             confirmBtn.innerText = "ยืนยันสั่งอาหาร";
             confirmBtn.disabled = false;
