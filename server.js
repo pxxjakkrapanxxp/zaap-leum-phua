@@ -12,7 +12,7 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// 🚀 ระบบตั้งค่าสลับบอทและกลุ่มแบบไร้รอยต่อ 5 ระดับ!
+// 🚀 ระบบตั้งค่าสลับบอทและกลุ่มแบบไร้รอยต่อ 5 ระดับ! (บอทประจำคู่กลุ่มตัวเอง)
 const LINE_BOT_CONFIGS = [
     {
         token: "D9ExQrK4/2l62hPuPvnrxJnsNUoRogzAJTYQL8Tzr3U38WBPwJcUf26DceTDkG+qNSuJBVEI5E6d6z4qBcr5VOkwwN3wwk8IeWRc/agLjJzKTrG6S4Nren2ZBV4K5P9GeUg45AOA8VBFFY4hHfquXQdB04t89/1O/w1cDnyilFU=", 
@@ -37,33 +37,48 @@ const LINE_BOT_CONFIGS = [
 ];
 
 app.get('/', (req, res) => { res.status(200).send('ระบบหลังบ้านแซ่บลืมผัวทำงานปกติจ้า 🌶️🔥'); });
-app.get('/api/ping', (req, res) => { res.status(200).send('OK'); });
 
-async function sendLineMessageWithFallback(messageText, botIndex = 0) {
-    if (botIndex >= LINE_BOT_CONFIGS.length) { throw new Error("🚨 โควตาเต็มหมดแล้วจ้า!"); }
-    const currentBot = LINE_BOT_CONFIGS[botIndex];
-    if (!currentBot.groupId || currentBot.groupId.includes("วาง_GROUP")) {
-        return await sendLineMessageWithFallback(messageText, botIndex + 1);
+// เพิ่ม Route พิเศษเอาไว้เช็กว่าหลังบ้านตื่นอยู่ไหม
+app.get('/api/ping', (req, res) => {
+    res.status(200).send('OK');
+});
+
+// 🔄 ฟังก์ชันอัจฉริยะ: วนลูปสลับคู่บอทและกลุ่มคู่กันไปเรื่อยๆ หากตรวจพบว่าโควตา 300 ข้อความเต็ม
+async function sendLineMessageWithFallback(messageText, configIndex = 0) {
+    if (configIndex >= LINE_BOT_CONFIGS.length) {
+        throw new Error("🚨 โควตาฟรีของบอท LINE ทุกกลุ่มเต็มหมดแล้วจ้า!");
     }
+
+    const currentBot = LINE_BOT_CONFIGS[configIndex];
+
     try {
         await axios.post('https://api.line.me/v2/bot/message/push', {
             to: currentBot.groupId,
             messages: [{ type: 'text', text: messageText }]
         }, {
-            headers: { 'Authorization': `Bearer ${currentBot.token}`, 'Content-Type': 'application/json' },
-            timeout: 5000 // ⚡ สลับบอทไว ไม่ยืนเอ๋อรอนาน
+            headers: {
+                'Authorization': `Bearer ${currentBot.token}`,
+                'Content-Type': 'application/json'
+            },
+            timeout: 8000 // ล็อกเวลาไว้ 8 วินาทีป้องกันเบราว์เซอร์ค้างหมุนนาน
         });
+        console.log(`✅ ส่งออเดอร์เข้ากลุ่มสำเร็จด้วย บอทกลุ่มที่ ${configIndex + 1}`);
     } catch (error) {
-        const errorMsg = JSON.stringify(error.response ? error.response.data : {});
+        const errorData = error.response ? error.response.data : {};
+        const errorMsg = JSON.stringify(errorData);
+        
+        // 🛠️ ดักจับ Error: ถ้าข้อความเต็ม 300 (limit) หรือส่งไม่ผ่าน ให้กระโดดสลับไปใช้ บอท+กลุ่ม ถัดไปทันที
         if (errorMsg.includes("limit") || error.response?.status === 400 || error.response?.status === 429) {
-            return await sendLineMessageWithFallback(messageText, botIndex + 1);
+            console.warn(`⚠️ บอทกลุ่มที่ ${configIndex + 1} เต็มหรือส่งไม่ได้ กำลังสลับไปใช้บอทกลุ่มที่ ${configIndex + 2}...`);
+            return await sendLineMessageWithFallback(messageText, configIndex + 1);
         } else {
-            throw new Error(`LINE API พังที่กลุ่ม ${botIndex + 1}: ${error.message}`);
+            // ถ้าพังด้วยสาเหตุอื่น ให้โยน Error ออกไป
+            throw new Error(`LINE API พังที่บอทกลุ่มที่ ${configIndex + 1}: ${error.message}`);
         }
     }
 }
 
-// 🛒 Route หลักสำหรับรับออเดอร์ (อัปเดตระบบดักกรองชื่อเบียร์ช้าง & เบียร์สิงห์)
+// 🛒 Route หลักสำหรับรับออเดอร์ 
 app.post('/api/order', async (req, res) => {
     try {
         const { customer, table, orderType, address, phone, orders, totalCost } = req.body;
@@ -75,48 +90,53 @@ app.post('/api/order', async (req, res) => {
                 const item = orders[i];
                 if (!item) continue;
 
-                // 🧼 ซูเปอร์คลีน: ล้างคำว่า "จาน" ทุกรูปแบบ
-                let name = String(item.name || '')
-                    .replace(/จาน/g, '')
-                    .replace(/\s+/g, ' ')
-                    .trim();
-
+                // 🧼 ซูเปอร์คลีนคำว่าจานออก
+                let name = String(item.name || '').replace(/จาน/g, '').replace(/\s+/g, ' ').trim();
                 let qty = item.quantity || item.qty || 1;
-                let spicyText = item.spicy ? ` (${String(item.spicy).trim()})` : '';
-                
-                // ดึงราคาและคำนวณราคารวมของเมนูนั้น
                 let price = Number(item.price || 0);
                 let totalPrice = price * Number(qty);
-
-                const nameLower = name.toLowerCase();
                 
-                // 🍺 1. ดักตรวจและเคลียร์ชื่อ "เบียร์สิงห์"
+                let spicyText = item.spicy ? ` (${String(item.spicy).trim()})` : '';
+                const nameLower = name.toLowerCase();
+
+                // 🎯 [หมวดเครื่องดื่ม] คัดกรองด้วยราคา ล้างชื่อหลอน
                 if (nameLower.includes("เบียร์สิงห์")) {
-                    if (nameLower.includes("โปร") || spicyText.includes("โปร") || price === 240) {
+                    spicyText = ''; 
+                    if (price === 240) {
                         name = "เบียร์สิงห์ (โปร)";
                     } else {
                         name = "เบียร์สิงห์ (ขวด)";
                     }
                 } 
-                // 🍺 2. ดักตรวจและเคลียร์ชื่อ "เบียร์ช้าง" (แก้ไขจุดนี้)
+                // ดักจับและจัดรูปชื่อเบียร์ช้าง
                 else if (nameLower.includes("เบียร์ช้าง")) {
-                    if (nameLower.includes("โปร") || spicyText.includes("โปร") || price === 210) {
+                    spicyText = ''; 
+                    if (price === 210) {
                         name = "เบียร์ช้าง (โปร)";
                     } else {
                         name = "เบียร์ช้าง (ขวด)";
                     }
+                } 
+                // ดักจับและจัดรูปชื่อแสงโสม
+                else if (nameLower.includes("แสงโสม")) {
+                    spicyText = '';
+                    if (price === 200) {
+                        name = "แสงโสม (แบน)";
+                    } else {
+                        name = "แสงโสม (กลม)";
+                    }
                 }
 
-                // สกัดคำว่า (ธรรมดา) ที่อาจจะหลุดพ่วงมากับเครื่องดื่มออกไปเพื่อความกระชับ
-                if (name.includes("เบียร์")) {
-                    spicyText = spicyText.replace(/\(ธรรมดา\)/g, '').trim();
+                // สกัดคำว่า (ธรรมดา) เผื่อตกค้างในกลุ่มเครื่องดื่มอื่นๆ
+                if (nameLower.includes("เบียร์") || nameLower.includes("น้ำ") || nameLower.includes("โซดา") || nameLower.includes("เหล้า")) {
+                    spicyText = '';
                 }
                 
                 itemsLog.push(`• ${name}${spicyText ? ' ' + spicyText : ''} x ${qty}\nราคา ${totalPrice} บาท`);
             }
             formattedOrders = itemsLog.join('\n\n');
         } else if (typeof orders === 'string') {
-            formattedOrders = orders.replace(/จาน/g, '').replace(/\s*x\s*\d+\s*/g, (match) => match.trim() + ' ').trim();
+            formattedOrders = orders.replace(/จาน/g, '').trim();
         } else {
             formattedOrders = 'ไม่มีรายการอาหาร';
         }
@@ -132,7 +152,6 @@ app.post('/api/order', async (req, res) => {
             deliveryInfo = `🍽️ รูปแบบ: ทานที่ร้าน (โต๊ะ: ${tableNum || '-'})`;
         }
 
-        // 📝 มัดรวมข้อความส่งเข้า LINE บอท
         const messageText = `📥 ออเดอร์ใหม่เข้าแล้วจ้า! 🔥🌶️\n\n` +
                             `${deliveryInfo}\n` +
                             `👤 ลูกค้า: คุณ ${customer}\n\n` +
@@ -141,6 +160,7 @@ app.post('/api/order', async (req, res) => {
                             `💰 ยอดสุทธิรวม: ${totalCost} บาท\n` +
                             `================🔥`;
 
+        // 🚀 สั่งรันระเบิดลูปยิงสลับกลุ่มตามโครงสร้าง LINE_BOT_CONFIGS
         await sendLineMessageWithFallback(messageText, 0);
         res.status(200).json({ status: 'success', message: 'ส่งออเดอร์สำเร็จ' });
 
