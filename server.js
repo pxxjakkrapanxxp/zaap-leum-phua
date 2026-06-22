@@ -34,6 +34,7 @@ const LINE_BOT_CONFIGS = [
         token: "RiTyu58y5aqBgH5+yXINT+wY0eBOCM4ok1q4TfS/HyNjXmFpnG/ktmcbFobzhh2bcesQxUcCiOmV28gQmu26MyiahEOOc9N10gJK/sfTcNajXuLr0n6iOBBqS0lxL483q5oKQEFFf7IzfVwgx53R+AdB04t89/1O/w1cDnyilFU=", 
         groupId: "C264f89b5577d3246069b76bdcac39418"
     }
+]; // 🛠️ แก้ไข: ปิดวงเล็บ ARRAY ตรงนี้ที่ขาดหายไปในโค้ดเดิม
 
 app.get('/', (req, res) => { res.status(200).send('ระบบหลังบ้านแซ่บลืมผัวทำงานปกติจ้า 🌶️🔥'); });
 
@@ -98,7 +99,7 @@ app.post('/api/order', async (req, res) => {
                 let spicyText = item.spicy ? ` (${String(item.spicy).trim()})` : '';
                 const nameLower = name.toLowerCase();
 
-                // 🎯 [หมวดเครื่องดื่ม] คัดกรองด้วยราคา ล้างชื่อหลอน
+                // 🎯 [หมวดเครื่องดื่ม] คัดกรองด้วยราคา ล้างชื่อหลอนและจัดฟอร์แมตใหม่ตามเงื่อนไขผู้ใช้
                 if (nameLower.includes("เบียร์สิงห์")) {
                     spicyText = ''; 
                     if (price === 240) {
@@ -107,7 +108,6 @@ app.post('/api/order', async (req, res) => {
                         name = "เบียร์สิงห์ (ขวด)";
                     }
                 } 
-                // ดักจับและจัดรูปชื่อเบียร์ช้าง
                 else if (nameLower.includes("เบียร์ช้าง")) {
                     spicyText = ''; 
                     if (price === 210) {
@@ -116,7 +116,6 @@ app.post('/api/order', async (req, res) => {
                         name = "เบียร์ช้าง (ขวด)";
                     }
                 } 
-                // ดักจับและจัดรูปชื่อแสงโสม
                 else if (nameLower.includes("แสงโสม")) {
                     spicyText = '';
                     if (price === 200) {
@@ -125,8 +124,16 @@ app.post('/api/order', async (req, res) => {
                         name = "แสงโสม (กลม)";
                     }
                 }
+                else if (nameLower.includes("น้ำเปล่า")) {
+                    spicyText = '';
+                    if (price === 10) {
+                        name = "น้ำเปล่า (เล็ก)";
+                    } else {
+                        name = "น้ำเปล่า (ใหญ่)";
+                    }
+                }
 
-                // สกัดคำว่า (ธรรมดา) เผื่อตกค้างในกลุ่มเครื่องดื่มอื่นๆ
+                // สกัดคำว่า (ความเผ็ด/ธรรมดา) เผื่อตกค้างในกลุ่มเครื่องดื่มอื่นๆ
                 if (nameLower.includes("เบียร์") || nameLower.includes("น้ำ") || nameLower.includes("โซดา") || nameLower.includes("เหล้า")) {
                     spicyText = '';
                 }

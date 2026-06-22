@@ -1107,93 +1107,65 @@ function sendOrderToKitchen() {
         return;
     }
 
-    // 3. ปรับโครงสร้างมารวบรวมรายการอาหารในตะกร้าลงใน Array เพื่อจัดบรรทัดง่ายๆ
-    var orderItemsArray = []; 
+    // 3. 🛠️ ปรับโครงสร้างใหม่: ส่งอาหารเป็น Array สะอาดๆ ไปให้หลังบ้านทำงานแทนส่ง String ยาว
+    var cleanOrdersArray = []; 
 
-    function formatOrderItem(item) {
-        if (!item) return "";
-        var nameLower = item.name ? item.name.toLowerCase() : "";
-        
-        // 1. ตรวจสอบกลุ่มสินค้าเพื่อนำไปคัดกรองความเผ็ดอัตโนมัติ
-        var isDrink = nameLower.includes("เบียร์") || nameLower.includes("น้ำ") || nameLower.includes("โซด") || nameLower.includes("เหล้า") || nameLower.includes("สิงห์");
-        var isNonSpicyFood = nameLower.includes("ผัด") || nameLower.includes("ทอด") || nameLower.includes("ต้มจืด") || nameLower.includes("เจียว") || nameLower.includes("ข้าว");
-        var isComboSet = nameLower.includes("เซต") || nameLower.includes("ชุด") || nameLower.includes("โปร") || nameLower.includes("โปรเซต");
-
-        // 2. จัดการเรื่องความเผ็ดและหมายเหตุ (Note)
-        var noteText = "";
-        var currentSpicy = item.spicy ? item.spicy.trim() : "";
-
-        if (currentSpicy !== "") {
-            if (isDrink || isNonSpicyFood || isComboSet) {
-                if (currentSpicy !== "เผ็ดกลาง" && currentSpicy !== "เผ็ดน้อย" && currentSpicy !== "เผ็ดมาก" && currentSpicy !== "ไม่เผ็ด") {
-                    noteText = " (" + currentSpicy + ")";
-                }
-            } else {
-                noteText = " (" + currentSpicy + ")";
-            }
-        }
-
-        // 3. จัดการชื่อเมนูเบียร์สิงห์ให้แสดงสั้นๆ
-        var finalName = item.name ? item.name.trim() : "รายการอาหาร";
-        if (nameLower.includes("เบียร์สิงห์")) {
-            if (nameLower.includes("โปร") || currentSpicy.includes("โปร") || Number(item.price) === 240) {
-                finalName = "เบียร์สิงห์ (โปร)";
-            } else {
-                finalName = "เบียร์สิงห์ (ขวด)";
-            }
-        }
-
-        // 4. คำนวณราคารวมรายบรรทัด
+    function processItemToArray(item) {
+        if (!item) return;
         var qty = item.qty || item.quantity || 1;
-        var price = item.price || 0;
-        var totalPrice = Number(price) * Number(qty);
+        if (Number(qty) <= 0) return;
 
-        // 🧼 CLEANUP: ดักลบคำว่า "จาน" ออกจากชื่อเมนูในทุกรูปแบบให้เกลี้ยงเกลา
-        finalName = finalName.replace(/\s*จาน$/g, "")
-                             .replace(/\s*จาน\s*/g, "")
-                             .replace(/x\s*\d+\s*จาน/g, "");
+        var finalName = item.name ? item.name.trim() : "รายการอาหาร";
+        var currentSpicy = item.spicy ? item.spicy.trim() : "";
+        var price = Number(item.price || 0);
 
-        // คืนค่ารูปแบบรายการที่ไม่มีคำว่า "จาน" โผล่ไปกวนใจหลังตัวเลขจำนวน
-        return "• " + finalName + noteText + " x " + qty + "\n" + "ราคา " + totalPrice + " บาท";
+        // ดักกรองกลุ่มเครื่องดื่ม/ของทอด เพื่อเคลียร์ความเผ็ดสะสมตั้งแต่หน้าบ้าน
+        var nameLower = finalName.toLowerCase();
+        var isDrinkOrSnack = nameLower.includes("เบียร์") || nameLower.includes("น้ำ") || 
+                             nameLower.includes("โซด") || nameLower.includes("เหล้า") || 
+                             nameLower.includes("สิงห์") || nameLower.includes("ผัด") || 
+                             nameLower.includes("ทอด") || nameLower.includes("ข้าว");
+
+        if (isDrinkOrSnack) {
+            currentSpicy = ""; // หน้าบ้านสั่งล้างความเผ็ดทันที
+        }
+
+        // ยัดข้อมูลสะอาดใส่ Array เตรียมยิงไปหลังบ้าน
+        cleanOrdersArray.push({
+            name: finalName,
+            quantity: Number(qty),
+            price: price,
+            spicy: currentSpicy
+        });
     }
         
-    // ดึงข้อมูลเมนูหลักที่สั่ง
+    // ดึงเมนูหลัก
     for (var menuId in orderCart) {
         if (orderCart.hasOwnProperty(menuId)) {
-            var item = orderCart[menuId];
-            if (item && (item.qty > 0 || item.quantity > 0)) {
-                var formatted = formatOrderItem(item);
-                if (formatted) orderItemsArray.push(formatted);
-            }
+            processItemToArray(orderCart[menuId]);
         }
     }
     
-    // ดึงข้อมูลเมนูพิเศษอื่นๆ (ถ้ามี)
+    // ดึงเมนูพิเศษ
     if (typeof customMenuCart !== 'undefined' && customMenuCart.length > 0) {
         customMenuCart.forEach(function(item) {
-            if (item && (item.qty > 0 || item.quantity > 0)) {
-                var formatted = formatOrderItem(item);
-                if (formatted) orderItemsArray.push(formatted);
-            }
+            processItemToArray(item);
         });
     }
 
-    // ✨ นำอาร์เรย์รายการอาหารมาต่อกัน และเว้นช่องไฟบรรทัดใหม่ให้สวยงามโดยอัตโนมัติ
-    var orderDetailsText = orderItemsArray.join('\n\n');
-
-    if (orderDetailsText === "") {
+    if (cleanOrdersArray.length === 0) {
         alert("ยังไม่มีอาหารในตะกร้าเลยจ้า เลือกเมนูแซ่บๆ ก่อนนะ");
         return;
     }
 
-    // 4. วิ่งเข้าหาเซิร์ฟเวอร์หลังบ้านบน Render ของพี่โอ๊ต
+    // 4. วิ่งเข้าหาเซิร์ฟเวอร์หลังบ้านบน Render
     var localServerUrl = "https://zaap-leum-phua.onrender.com/api/order";
 
-    // จัดกลุ่มข้อมูลเตรียมส่งไปหลังบ้าน
+    // จัดกลุ่มข้อมูล payload (ส่ง orders แบบเป็น Array ตามใจที่หลังบ้าน Node.js รอรับ)
     var payload = {
         customer: customerName,
         table: tableName,
-        orders: orderDetailsText.trim(), 
+        orders: cleanOrdersArray, // ✨ ส่งเป็นโครงสร้างวัตถุ Array ช่วยลดภาระการส่งและแกะข้อมูล
         totalCost: totalCost
     };
 
@@ -1204,7 +1176,7 @@ function sendOrderToKitchen() {
         confirmBtn.disabled = true;
     }
 
-    // 5. ส่งข้อมูลไปที่หลังบ้าน Node.js -> ไปยัง LINE API
+    // 5. ส่งข้อมูลไปที่หลังบ้าน Node.js ด้วย Fetch
     fetch(localServerUrl, {
         method: "POST",
         headers: {
@@ -1221,11 +1193,9 @@ function sendOrderToKitchen() {
     .then(function(result) {
         alert("🎉 ส่งออเดอร์เข้าครัวสำเร็จแล้วจ้า แซ่บลอนะคะ!");
         
-        // เคลียร์ตะกร้าสินค้าในระบบ Memory
         orderCart = {};
         if (typeof customMenuCart !== 'undefined') customMenuCart = [];
         
-        // ปิดหน้าต่างป๊อปอัพสรุปออเดอร์
         if (typeof closeSummaryPopup === 'function') {
             closeSummaryPopup();
         } else {
@@ -1233,13 +1203,11 @@ function sendOrderToKitchen() {
             if (sModal) sModal.style.display = "none";
         }
         
-        // รีเซ็ตปุ่มกดยืนยันใน Modal กลับมาสถานะปกติ
         if (confirmBtn) {
             confirmBtn.innerText = "ยืนยันสั่งอาหาร";
             confirmBtn.disabled = false;
         }
         
-        // รีเซ็ตแถบ Bottom Bar บนหน้าเว็บหลักให้เป็น 0 และสั่ง disabled ปุ่มส่งออเดอร์หลัก
         var totalItemsElem = document.getElementById("total-items");
         var totalCostElem = document.getElementById("total-cost");
         var submitOrderBtn = document.getElementById("submitOrderBtn");
@@ -1250,11 +1218,10 @@ function sendOrderToKitchen() {
             submitOrderBtn.disabled = true;
         }
         
-        // บังคับโหลดหน้าใหม่เพื่อเคลียร์สถานะตัวเลขสติกเกอร์บนหน้าเว็บให้หมดจด
         location.reload();
     })
     .catch(function(error) {
-        alert("เกิดข้อผิดพลาดในการส่งออเดอร์ กรุณาตรวจสอบว่า Render Web Service ตื่นอยู่หรือไม่ครับ");
+        alert("เกิดข้อผิดพลาดในการส่งออเดอร์ กรุณาตรวจสอบอีกครั้งครับ");
         if (confirmBtn) {
             confirmBtn.innerText = "ยืนยันสั่งอาหาร";
             confirmBtn.disabled = false;
@@ -1744,7 +1711,6 @@ function openMenuModal(pageNumber) {
     const menuSelect = document.getElementById('menuSelector');
     menuSelect.innerHTML = '<option value="">-- เลือกเมนู --</option>';
     
-    // 🔥 เปลี่ยนมาใช้ documentFragment เพื่อประสิทธิภาพที่ดียิ่งขึ้น (ไม่กระตุก)
     const fragment = document.createDocumentFragment();
     config.options.forEach(item => {
         let opt = document.createElement('option');
@@ -1757,7 +1723,6 @@ function openMenuModal(pageNumber) {
 
     document.getElementById('priceSelector').innerHTML = '<option value="">-- โปรดเลือกเมนูก่อน --</option>';
     
-    // 🚨 รีเซ็ตค่าตัวแปร Global เผ็ดกลาง/หมายเหตุเดิมทิ้งทุกครั้งที่เปิด Modal เมนูใหม่
     chosenSpicy = ""; 
     const modalNoteInput = document.getElementById('customSpicyInput') || document.getElementById('modalSpicyNote');
     if (modalNoteInput) modalNoteInput.value = "";
@@ -1768,14 +1733,10 @@ function openMenuModal(pageNumber) {
 }
 
 function openMenuModalWithSelection(pageNumber, selectedMenuName) {
-    // 1. เคลียร์ค่าความเผ็ดให้ว่างก่อนเปิด Modal ทุกครั้ง
     chosenSpicy = "";
-    
-    // 2. เคลียร์ค่าใน Input หน้า Modal ถ้ามี (เช่นช่อง Note ความเผ็ด)
     const modalNoteInput = document.getElementById('customSpicyInput') || document.getElementById('modalSpicyNote');
     if (modalNoteInput) modalNoteInput.value = "";
 
-    // 3. เรียกฟังก์ชันเปิดปกติ
     openMenuModal(pageNumber);
     
     const menuSelect = document.getElementById('menuSelector');
@@ -1787,7 +1748,6 @@ function openMenuModalWithSelection(pageNumber, selectedMenuName) {
 
 function closeMenuModal() {
     document.getElementById('menuModal').style.display = 'none';
-    // 🚨 ล้างค่าทันทีหลังปิดตัวเลือกเพื่อป้องกันการจำค้างไปหน้าถัดไป
     chosenSpicy = "";
 }
 
@@ -1805,7 +1765,21 @@ function onMenuChange() {
     }
 
     const prices = selectedOption.getAttribute('data-prices').split(',');
-    const sizeLabels = prices.length === 3 ? ['ไซส์ S', 'ไซส์ M', 'ไซส์ L'] : prices.length === 2 ? ['จานปกติ', 'พิเศษ/จานใหญ่'] : [];
+    const nameLower = selectedOption.value.toLowerCase();
+    
+    // กำหนดป้ายกำกับหน่วยนับตามประเภทเครื่องดื่ม/อาหาร
+    let sizeLabels = [];
+    if (nameLower.includes("เบียร์")) {
+        sizeLabels = ['/ขวด', '/โปร'];
+    } else if (nameLower.includes("แสงโสม")) {
+        sizeLabels = ['/แบน', '/กลม'];
+    } else if (nameLower.includes("น้ำเปล่า")) {
+        sizeLabels = ['เล็ก', 'ใหญ่'];
+    } else if (prices.length === 3) {
+        sizeLabels = ['ไซส์ S', 'ไซส์ M', 'ไซส์ L'];
+    } else if (prices.length === 2) {
+        sizeLabels = ['จานปกติ', 'พิเศษ/จานใหญ่'];
+    }
 
     const fragment = document.createDocumentFragment();
     prices.forEach((price, index) => {
@@ -1844,31 +1818,45 @@ function addItemToCart() {
         return;
     }
 
-    // --- ส่วนที่แก้ไข: จัดการเรื่องความเผ็ด ---
     let finalSpicy = chosenSpicy;
     const nameLower = menuName.toLowerCase();
     
-    // 1. ระบุกลุ่มเมนูที่ "ห้าม" มีระดับความเผ็ดเด็ดขาด (เครื่องดื่ม, ข้าว, ของทอด, ชุดโปร)
+    // เช็กว่าเป็นกลุ่มเครื่องดื่มหรือท็อปปิ้งที่ไม่ต้องใส่ความเผ็ด
     const isNoSpicyMenu = nameLower.includes("เบียร์") || nameLower.includes("ข้าว") || 
                           nameLower.includes("น้ำ") || nameLower.includes("โซดา") || 
                           nameLower.includes("ทอด") || nameLower.includes("ผัด") || 
-                          nameLower.includes("ชุด") || nameLower.includes("โปร");
+                          nameLower.includes("ชุด") || nameLower.includes("โปร") ||
+                          nameLower.includes("แสงโสม") || nameLower.includes("เหล้า");
 
-    // 2. ถ้าเป็นเมนูที่ไม่ควรเผ็ด ให้ล้างค่าทิ้งทันที!
     if (isNoSpicyMenu) {
         finalSpicy = "";
     } else {
-        // ถ้าเป็นเมนูที่เผ็ดได้ (ยำ/ตำ/เหลา) แต่ไม่ได้กดเลือก ให้ถือเป็นค่าว่าง
         if (!finalSpicy) finalSpicy = "";
     }
-    // ---------------------------------------
 
     let displayName = menuName;
     const menuSelect = document.getElementById('menuSelector');
     const selectedOption = menuSelect.options[menuSelect.selectedIndex];
     const allPrices = selectedOption.getAttribute('data-prices').split(',');
     
-    if (allPrices.length === 3) {
+    // 🎯 จัดการชื่อแสดงผลในตะกร้าหน้าบ้านตามเงื่อนไขราคาของเครื่องดื่ม
+    if (nameLower.includes("เบียร์")) {
+        const idx = allPrices.indexOf(menuPrice.toString());
+        const beerSizes = ['ขวด', 'โปร'];
+        if(idx !== -1 && beerSizes[idx]) displayName = `${menuName.split(' ')[0]} (${beerSizes[idx]})`;
+    } 
+    else if (nameLower.includes("แสงโสม")) {
+        const idx = allPrices.indexOf(menuPrice.toString());
+        const somSizes = ['แบน', 'กลม'];
+        if(idx !== -1 && somSizes[idx]) displayName = `แสงโสม (${somSizes[idx]})`;
+    } 
+    else if (nameLower.includes("น้ำเปล่า")) {
+        const idx = allPrices.indexOf(menuPrice.toString());
+        const waterSizes = ['เล็ก', 'ใหญ่'];
+        if(idx !== -1 && waterSizes[idx]) displayName = `น้ำเปล่า (${waterSizes[idx]})`;
+    }
+    // 🍳 ถ้าเป็นอาหารทั่วไปที่มี 3 หรือ 2 ราคา ให้ใช้ Logic เดิม
+    else if (allPrices.length === 3) {
         const idx = allPrices.indexOf(menuPrice.toString());
         const sizes = ['S', 'M', 'L'];
         if(idx !== -1) displayName = `${menuName.replace(" (S/M/L)", "")} (${sizes[idx]})`;
@@ -1878,7 +1866,6 @@ function addItemToCart() {
         if(idx !== -1) displayName = `${menuName} (${sizes[idx]})`;
     }
 
-    // บันทึกลงตะกร้าด้วยค่า finalSpicy ที่สะอาดแล้ว
     let existingItem = customMenuCart.find(item => item.name === displayName && item.price === menuPrice && item.spicy === finalSpicy);
     if(existingItem) {
         existingItem.qty += currentModalQty;
@@ -1891,9 +1878,7 @@ function addItemToCart() {
         });
     }
 
-    // ล้างค่าเผ็ดทิ้งหลังบันทึกเสร็จ เพื่อป้องกันการจำค่าไปออเดอร์ถัดไป
     chosenSpicy = "";
-    
     closeMenuModal();
     refreshAllTotals();
 }
@@ -1992,7 +1977,6 @@ function initCartItem(id, name, price) {
     if (isNaN(parsedPrice)) parsedPrice = 0;
 
     if (!orderCart[id]) {
-        // 🚨 บังคับให้ค่าเริ่มต้น .spicy เป็นค่าว่างตัวเปล่าเสมอ ป้องกันอาการ Undefined หรือจำค้าง
         orderCart[id] = { name: name, price: parsedPrice, qty: 0, spicy: "" };
     } else if (orderCart[id].price === 0 && parsedPrice > 0) {
         orderCart[id].price = parsedPrice;
@@ -2003,13 +1987,12 @@ function updateItemSpicy(id, noteText) {
     if (!orderCart[id]) {
         orderCart[id] = { name: "รายการอาหาร", price: 0, qty: 0, spicy: "" };
     }
-    // ใช้ตัวกรองเช็คคีย์เวิร์ดของสินค้าก่อนบันทึกความเผ็ด
     var nameLower = orderCart[id].name.toLowerCase();
     var isDrink = nameLower.includes("เบียร์") || nameLower.includes("น้ำ") || nameLower.includes("โซดา") || nameLower.includes("แสงโสม") || nameLower.includes("เหล้า");
     var isTopping = nameLower.includes("ข้าวเหนียว") || nameLower.includes("ข้าวสวย") || nameLower.includes("ขนมจีน") || nameLower.includes("มาม่า") || nameLower.includes("แคบหมู");
 
     if (isDrink || isTopping) {
-        orderCart[id].spicy = ""; // 🚨 บังคับล้างค่าว่างทันทีถ้าเป็นเครื่องดื่ม/ท็อปปิ้ง
+        orderCart[id].spicy = ""; 
     } else {
         orderCart[id].spicy = noteText.trim();
     }
@@ -2152,7 +2135,6 @@ function triggerSummaryPopup() {
     
     for (let id in orderCart) {
         if (orderCart.hasOwnProperty(id) && orderCart[id].qty > 0) {
-            // ดักสกัดตัวหนังสือความเผ็ดของสิ่งที่ไม่ใช่ของคาวบนหน้าต่าง Summary ตรวจสอบความรอบคอบอีกชั้นหนึ่ง
             var nameLower = orderCart[id].name.toLowerCase();
             var isDrink = nameLower.includes("เบียร์") || nameLower.includes("น้ำ") || nameLower.includes("โซดา") || nameLower.includes("แสงโสม") || nameLower.includes("เหล้า");
             var isTopping = nameLower.includes("ข้าวเหนียว") || nameLower.includes("ข้าวสวย") || nameLower.includes("ขนมจีน") || nameLower.includes("มาม่า") || nameLower.includes("แคบหมู");
@@ -2219,8 +2201,26 @@ function closeSummaryPopup() {
     document.getElementById('summaryModal').style.display = 'none';
 }
 
+// 🍳 [ฟังก์ชันตัวช่วยแยกสัดส่วน] เพื่อยกระดับ Performance ไม่ต้องประกาศซ้ำข้างในส่งออเดอร์
+function processPayloadItem(item) {
+    var nameLower = item.name.toLowerCase();
+    var isDrink = nameLower.includes("เบียร์") || nameLower.includes("น้ำ") || nameLower.includes("โซด") || nameLower.includes("แสงโสม") || nameLower.includes("เหล้า");
+    var isTopping = nameLower.includes("ข้าวเหนียว") || nameLower.includes("ข้าวสวย") || nameLower.includes("ขนมจีน") || nameLower.includes("มาม่า") || nameLower.includes("แคบหมู") || nameLower.includes("ไข่");
+    var isComboSet = nameLower.includes("เซต") || nameLower.includes("ชุด") || nameLower.includes("โปร");
+
+    var cleanSpicy = (item.spicy === "เผ็ดกลาง" && (isDrink || isTopping || isComboSet)) ? "" : (item.spicy || "");
+    var cleanName = item.name.replace(/\s*จาน/g, '').trim();
+
+    return {
+        name: cleanName,
+        spicy: cleanSpicy,
+        price: item.price || 0, 
+        quantity: item.qty
+    };
+}    
+
 // ==========================================
-// 🍳 ฟังก์ชันส่งออเดอร์ไปฐานข้อมูล (Back-end) - ฉบับแก้ไขตัดคำว่าจาน & จัดการชื่อเบียร์สิงห์
+// 🍳 ฟังก์ชันส่งออเดอร์ไปฐานข้อมูล (Back-end) - อัปเกรดความเร็วระดับสูงสุด
 // ==========================================
 function sendOrderToKitchen() {
     const nameInput = document.getElementById('custName') || document.getElementById('customerName');
@@ -2272,37 +2272,12 @@ function sendOrderToKitchen() {
             icon: 'warning',
             confirmButtonText: 'ตกลง',
             confirmButtonColor: '#ff3131'
-            });
+        });
         return;
     }
 
     var ordersArray = [];
     
-// ✨ ฟังก์ชันอัปเกรด: แยกชื่อเมนู ระดับความเผ็ด และราคา ออกจากกันอย่างเป็นระบบ
-function processPayloadItem(item) {
-    var nameLower = item.name.toLowerCase();
-    
-    // กลุ่มนี้คือ "เขตปลอดความเผ็ด"
-    var isDrink = nameLower.includes("เบียร์") || nameLower.includes("น้ำ") || nameLower.includes("โซด") || nameLower.includes("แสงโสม") || nameLower.includes("เหล้า");
-    var isTopping = nameLower.includes("ข้าวเหนียว") || nameLower.includes("ข้าวสวย") || nameLower.includes("ขนมจีน") || nameLower.includes("มาม่า") || nameLower.includes("แคบหมู") || nameLower.includes("ไข่");
-    var isComboSet = nameLower.includes("เซต") || nameLower.includes("ชุด") || nameLower.includes("โปร");
-
-    // ถ้าค่าที่ติดมาเป็น "เผ็ดกลาง" แล้วดันอยู่ในกลุ่มปลอดความเผ็ด -> บังคับเป็นค่าว่าง
-    var cleanSpicy = (item.spicy === "เผ็ดกลาง" && (isDrink || isTopping || isComboSet)) 
-                     ? "" 
-                     : (item.spicy || "");
-
-    // ตัดคำว่า "จาน" ออกจากชื่อเมนูฝั่งหน้าบ้านให้สะอาด
-    var cleanName = item.name.replace(/\s*จาน/g, '').trim();
-
-    // 💡 ส่งแยกฟิลด์ไปเลย เพื่อให้หลังบ้านทำงานง่ายและแม่นยำขึ้น
-    return {
-        name: cleanName,
-        spicy: cleanSpicy, // แยกความเผ็ดออกมา
-        price: item.price || 0, 
-        quantity: item.qty
-    };
-}    
     if (typeof orderCart !== 'undefined') {
         for (var menuId in orderCart) {
             if (orderCart.hasOwnProperty(menuId) && orderCart[menuId] !== null && orderCart[menuId].qty > 0) {
@@ -2342,7 +2317,8 @@ function processPayloadItem(item) {
         totalCost: totalCost
     };
 
-    var confirmBtn = document.getElementById("submitOrderBtn") || document.querySelector(".btn-m-confirm");
+    // 🎯 เจาะจงเลือกปุ่มด้วยคลาสที่ถูกต้องบนป๊อปอัพหน้าสรุปออเดอร์
+    var confirmBtn = document.querySelector(".btn-m-confirm");
     if (confirmBtn) {
         confirmBtn.innerText = "⏳ กำลังส่งออเดอร์...";
         confirmBtn.disabled = true;
