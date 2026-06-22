@@ -51,7 +51,7 @@ async function sendLineMessageWithFallback(messageText, botIndex = 0) {
             messages: [{ type: 'text', text: messageText }]
         }, {
             headers: { 'Authorization': `Bearer ${currentBot.token}`, 'Content-Type': 'application/json' },
-            timeout: 5000 // ⚡ ลด Timeout ลงเหลือ 5 วินาที เพื่อให้สลับบอทได้เร็วฟ้าผ่า ไม่ยืนเอ๋อรอโค้ดนาน
+            timeout: 5000 // ⚡ สลับบอทไว ไม่ยืนเอ๋อรอนาน
         });
     } catch (error) {
         const errorMsg = JSON.stringify(error.response ? error.response.data : {});
@@ -63,20 +63,19 @@ async function sendLineMessageWithFallback(messageText, botIndex = 0) {
     }
 }
 
-// 🛒 Route หลักสำหรับรับออเดอร์ (เวอร์ชันความเร็วสูง + คลีนคำว่าจานเกลี้ยง)
+// 🛒 Route หลักสำหรับรับออเดอร์ (อัปเดตระบบดักกรองชื่อเบียร์ช้าง & เบียร์สิงห์)
 app.post('/api/order', async (req, res) => {
     try {
         const { customer, table, orderType, address, phone, orders, totalCost } = req.body;
         let formattedOrders = '';
 
         if (Array.isArray(orders)) {
-            // ⚡ ใช้ลูปความเร็วสูงในการจัดเอกสารออเดอร์
             const itemsLog = [];
             for (let i = 0; i < orders.length; i++) {
                 const item = orders[i];
                 if (!item) continue;
 
-                // 🧼 ซูเปอร์คลีน: ล้างคำว่า "จาน" ทุกรูปแบบ ไม่ว่าจะติดกับสระ ตัวเลข หรือเว้นวรรค
+                // 🧼 ซูเปอร์คลีน: ล้างคำว่า "จาน" ทุกรูปแบบ
                 let name = String(item.name || '')
                     .replace(/จาน/g, '')
                     .replace(/\s+/g, ' ')
@@ -85,26 +84,38 @@ app.post('/api/order', async (req, res) => {
                 let qty = item.quantity || item.qty || 1;
                 let spicyText = item.spicy ? ` (${String(item.spicy).trim()})` : '';
                 
-                // ดักตรวจสิทธิ์เบียร์สิงห์
+                // ดึงราคาและคำนวณราคารวมของเมนูนั้น
+                let price = Number(item.price || 0);
+                let totalPrice = price * Number(qty);
+
                 const nameLower = name.toLowerCase();
+                
+                // 🍺 1. ดักตรวจและเคลียร์ชื่อ "เบียร์สิงห์"
                 if (nameLower.includes("เบียร์สิงห์")) {
-                    if (nameLower.includes("โปร") || spicyText.includes("โปร") || Number(item.price) === 240) {
+                    if (nameLower.includes("โปร") || spicyText.includes("โปร") || price === 240) {
                         name = "เบียร์สิงห์ (โปร)";
                     } else {
                         name = "เบียร์สิงห์ (ขวด)";
                     }
+                } 
+                // 🍺 2. ดักตรวจและเคลียร์ชื่อ "เบียร์ช้าง" (แก้ไขจุดนี้)
+                else if (nameLower.includes("เบียร์ช้าง")) {
+                    if (nameLower.includes("โปร") || spicyText.includes("โปร") || price === 210) {
+                        name = "เบียร์ช้าง (โปร)";
+                    } else {
+                        name = "เบียร์ช้าง (ขวด)";
+                    }
                 }
 
-                // คำนวณราคาด่วน
-                let price = item.price || 0;
-                let totalPrice = Number(price) * Number(qty);
+                // สกัดคำว่า (ธรรมดา) ที่อาจจะหลุดพ่วงมากับเครื่องดื่มออกไปเพื่อความกระชับ
+                if (name.includes("เบียร์")) {
+                    spicyText = spicyText.replace(/\(ธรรมดา\)/g, '').trim();
+                }
                 
-                // ✨ ผลลัพธ์สุดท้ายจะถูกตัดคำว่า "จาน" ออกแบบถอนรากถอนโคน
-                itemsLog.push(`• ${name}${spicyText} x ${qty}\nราคา ${totalPrice} บาท`);
+                itemsLog.push(`• ${name}${spicyText ? ' ' + spicyText : ''} x ${qty}\nราคา ${totalPrice} บาท`);
             }
             formattedOrders = itemsLog.join('\n\n');
         } else if (typeof orders === 'string') {
-            // เผื่อหน้าบ้านส่งหลุดมาเป็นสตริง ยัดแทรกตัวล้างคำว่าจานแบบละเอียดลงไปตรงนี้ด้วย
             formattedOrders = orders.replace(/จาน/g, '').replace(/\s*x\s*\d+\s*/g, (match) => match.trim() + ' ').trim();
         } else {
             formattedOrders = 'ไม่มีรายการอาหาร';
@@ -130,7 +141,6 @@ app.post('/api/order', async (req, res) => {
                             `💰 ยอดสุทธิรวม: ${totalCost} บาท\n` +
                             `================🔥`;
 
-        // สั่งยิงข้อความทันทีด้วยฟังก์ชันหน่วงเวลาน้อยลง
         await sendLineMessageWithFallback(messageText, 0);
         res.status(200).json({ status: 'success', message: 'ส่งออเดอร์สำเร็จ' });
 
