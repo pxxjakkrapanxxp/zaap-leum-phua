@@ -14,7 +14,7 @@ app.use(express.json());
 
 // 🚀 ระบบตั้งค่าสลับบอทและกลุ่มแบบไร้รอยต่อ 5 ระดับ! (บอทประจำคู่กลุ่มตัวเอง)
 const LINE_BOT_CONFIGS = [
-    {
+   {
         token: "D9ExQrK4/2l62hPuPvnrxJnsNUoRogzAJTYQL8Tzr3U38WBPwJcUf26DceTDkG+qNSuJBVEI5E6d6z4qBcr5VOkwwN3wwk8IeWRc/agLjJzKTrG6S4Nren2ZBV4K5P9GeUg45AOA8VBFFY4hHfquXQdB04t89/1O/w1cDnyilFU=", 
         groupId: "Caf6de425fc6bacbf9afd71c27ffef7ea"
     },
@@ -34,7 +34,6 @@ const LINE_BOT_CONFIGS = [
         token: "RiTyu58y5aqBgH5+yXINT+wY0eBOCM4ok1q4TfS/HyNjXmFpnG/ktmcbFobzhh2bcesQxUcCiOmV28gQmu26MyiahEOOc9N10gJK/sfTcNajXuLr0n6iOBBqS0lxL483q5oKQEFFf7IzfVwgx53R+AdB04t89/1O/w1cDnyilFU=", 
         groupId: "C264f89b5577d3246069b76bdcac39418"
     }
-];
 
 app.get('/', (req, res) => { res.status(200).send('ระบบหลังบ้านแซ่บลืมผัวทำงานปกติจ้า 🌶️🔥'); });
 
