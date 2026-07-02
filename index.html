@@ -504,8 +504,15 @@
         <div style="margin-bottom: 8px;">
             <input type="text" id="deliveryPhone" oninput="validateOrderStatus()" placeholder="ระบุเบอร์โทรศัพท์ติดต่อ *" style="width: 100%; padding: 6px; border: 1px solid #444; background: #fff; color: #000; border-radius: 4px; box-sizing: border-box;">
         </div>
-        <div>
+        <div style="margin-bottom: 8px;">
             <textarea id="deliveryAddress" oninput="validateOrderStatus()" placeholder="ระบุที่อยู่จัดส่งโดยละเอียด *" rows="2" style="width: 100%; padding: 6px; border: 1px solid #444; background: #fff; color: #000; border-radius: 4px; box-sizing: border-box; resize: none;"></textarea>
+        </div>
+        
+        <!-- 🆕 แทรกปุ่มดึงพิกัดโลเคชั่นตรงนี้ครับ -->
+        <div>
+            <button type="button" onclick="getLocation()" style="width: 100%; padding: 8px; background-color: #ff4747; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px;">
+                <i class="fa-solid fa-location-dot"></i> 📍 กดเพื่อดึงพิกัดโลเคชั่นปัจจุบัน
+            </button>
         </div>
     </div>
 </div>
@@ -2360,6 +2367,42 @@ function sendOrderToKitchen() {
         }
         console.error("Error:", error);
     });
+}
+// ==========================================
+// 📍 🆕 ฟังก์ชันใหม่: ดึงพิกัดโลเคชั่นปัจจุบันใส่ช่องที่อยู่จัดส่ง
+// ==========================================
+function getLocation() {
+    const addressInput = document.getElementById('deliveryAddress');
+    
+    if (navigator.geolocation) {
+        addressInput.value = "กำลังดึงพิกัดโลเคชั่นของคุณ...";
+        
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                
+                addressInput.value = mapsLink;
+                
+                // ตรวจสอบและกระตุ้นการเปลี่ยนสถานะปุ่มสั่งอาหาร
+                if (typeof validateOrderStatus === "function") {
+                    validateOrderStatus();
+                }
+                alert("ดึงพิกัดเรียบร้อย! ลิงก์แผนที่ถูกเพิ่มในช่องที่อยู่แล้วครับ ลูกค้าสามารถพิมพ์รายละเอียดบ้านต่อท้ายลิงก์ได้เลย");
+            }, 
+            function(error) {
+                addressInput.value = "";
+                if (typeof validateOrderStatus === "function") {
+                    validateOrderStatus();
+                }
+                alert("ไม่สามารถดึงตำแหน่งได้ กรุณาเปิด GPS บนมือถือ หรือพิมพ์ที่อยู่ด้วยตนเองครับ");
+            },
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+        );
+    } else {
+        alert("เบราว์เซอร์ของคุณไม่รองรับระบบดึงพิกัดอัตโนมัติ");
+    }
 }
   </script>
 </body>
