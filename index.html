@@ -2447,7 +2447,7 @@ function sendOrderToKitchen() {
     });
 }
 // ==========================================
-// 📍 🆕 ฟังก์ชันใหม่: ดึงพิกัดโลเคชั่นปัจจุบันใส่ช่องที่อยู่จัดส่ง
+// 📍 ฟังก์ชันดึงพิกัดโลเคชั่นปัจจุบัน (เวอร์ชันอัปเกรดป๊อปอัพสวยงาม)
 // ==========================================
 function getLocation() {
     const addressInput = document.getElementById('deliveryAddress');
@@ -2463,23 +2463,45 @@ function getLocation() {
                 
                 addressInput.value = mapsLink;
                 
-                // ตรวจสอบและกระตุ้นการเปลี่ยนสถานะปุ่มสั่งอาหาร
                 if (typeof validateOrderStatus === "function") {
                     validateOrderStatus();
                 }
-                alert("ดึงพิกัดเรียบร้อย! ลิงก์แผนที่ถูกเพิ่มในช่องที่อยู่แล้วครับ ลูกค้าสามารถพิมพ์รายละเอียดบ้านต่อท้ายลิงก์ได้เลย");
+                
+                // 🔥 เปลี่ยนจาก alert เดิม เป็น SweetAlert2
+                Swal.fire({
+                    title: 'ดึงพิกัดเรียบร้อย!',
+                    text: 'ลิงก์แผนที่ถูกเพิ่มในช่องที่อยู่แล้วครับ ลูกค้าสามารถพิมพ์รายละเอียดบ้านต่อท้ายลิงก์ได้เลย',
+                    icon: 'success',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#00c853'
+                });
             }, 
             function(error) {
                 addressInput.value = "";
                 if (typeof validateOrderStatus === "function") {
                     validateOrderStatus();
                 }
-                alert("ไม่สามารถดึงตำแหน่งได้ กรุณาเปิด GPS บนมือถือ หรือพิมพ์ที่อยู่ด้วยตนเองครับ");
+                
+                // 🔥 เปลี่ยนจุดที่แจ้งเตือนในภาพ image.png ให้เป็น SweetAlert2
+                Swal.fire({
+                    title: 'ไม่สามารถดึงตำแหน่งได้',
+                    text: 'กรุณาเปิด GPS บนมือถือ หรือพิมพ์ที่อยู่ด้วยตนเองครับ',
+                    icon: 'error',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#ff3131'
+                });
             },
             { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
         );
     } else {
-        alert("เบราว์เซอร์ของคุณไม่รองรับระบบดึงพิกัดอัตโนมัติ");
+        // 🔥 เปลี่ยนจุดนี้ด้วยเพื่อความสวยงามรอบด้าน
+        Swal.fire({
+            title: 'ไม่รองรับระบบ',
+            text: 'เบราว์เซอร์ของคุณไม่รองรับระบบดึงพิกัดอัตโนมัติ',
+            icon: 'warning',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#ff3131'
+        });
     }
 }
   </script>
