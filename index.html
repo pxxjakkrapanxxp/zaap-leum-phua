@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+    <!-- 1. Meta Tags สำหรับป้องกันและสั่งเคลียร์แคชบนบราวเซอร์ -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>เจ้นึ่ง แซ่บลืมผัว - สมุดเมนูสั่งอาหาร</title>
@@ -11,6 +16,14 @@
     
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- 2. สคริปต์ตรวจสอบและบังคับรีเฟรชหน้าเว็บหน้าแรกสุด 1 ครั้งเมื่อเปิดใน LINE เพื่อเคลียร์แคชลึก -->
+    <script>
+        if (navigator.userAgent.indexOf('Line') > -1 && !sessionStorage.getItem('line_refreshed')) {
+            sessionStorage.setItem('line_refreshed', 'true');
+            window.location.reload(true);
+        }
+    </script>
 
 <style>
         :root {
