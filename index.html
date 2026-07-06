@@ -513,6 +513,7 @@
         </select>
     </div>
 
+    <!-- 🚚 กล่องกรอกข้อมูลสำหรับ จัดส่งถึงบ้าน (เดลิเวอรี่) -->
     <div id="deliveryFields" style="display: none; background: #222; border: 1px solid #ff4747; padding: 12px; margin: 0 10px 10px 10px; border-radius: 6px;">
         <div style="margin-bottom: 8px;">
             <input type="text" id="deliveryPhone" oninput="validateOrderStatus()" placeholder="ระบุเบอร์โทรศัพท์ติดต่อ *" style="width: 100%; padding: 6px; border: 1px solid #444; background: #fff; color: #000; border-radius: 4px; box-sizing: border-box;">
@@ -520,12 +521,20 @@
         <div style="margin-bottom: 8px;">
             <textarea id="deliveryAddress" oninput="validateOrderStatus()" placeholder="ระบุที่อยู่จัดส่งโดยละเอียด *" rows="2" style="width: 100%; padding: 6px; border: 1px solid #444; background: #fff; color: #000; border-radius: 4px; box-sizing: border-box; resize: none;"></textarea>
         </div>
-        
-        <!-- 🆕 แทรกปุ่มดึงพิกัดโลเคชั่นตรงนี้ครับ -->
         <div>
             <button type="button" onclick="getLocation()" style="width: 100%; padding: 8px; background-color: #ff4747; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px;">
                 <i class="fa-solid fa-location-dot"></i> 📍 กดเพื่อดึงพิกัดโลเคชั่นปัจจุบัน
             </button>
+        </div>
+    </div>
+
+    <!-- 🛍️ กล่องกรอกข้อมูลเพิ่มเติมสำหรับ ห่อกลับบ้าน (แทรกใหม่ ดีไซน์เข้าธีมกัน) -->
+    <div id="takeoutFields" style="display: none; background: #222; border: 1px solid #ff4747; padding: 12px; margin: 0 10px 10px 10px; border-radius: 6px;">
+        <div style="margin-bottom: 8px;">
+            <input type="tel" id="takeoutPhone" oninput="validateOrderStatus()" placeholder="ระบุเบอร์โทรศัพท์ติดต่อ (ห่อกลับบ้าน) *" style="width: 100%; padding: 6px; border: 1px solid #444; background: #fff; color: #000; border-radius: 4px; box-sizing: border-box;">
+        </div>
+        <div>
+            <input type="text" id="takeoutNote" placeholder="พิมพ์หมายเหตุเพิ่มเติม (เช่น ไม่ใส่ผัก, แยกน้ำจิ้ม)" style="width: 100%; padding: 6px; border: 1px solid #444; background: #fff; color: #000; border-radius: 4px; box-sizing: border-box;">
         </div>
     </div>
 </div>
@@ -1764,14 +1773,15 @@ const swiper = new Swiper('.swiper', {
     touchStartPreventDefault: false, // ป้องกันการติดขัดขณะเริ่มใช้นิ้วปัดจอ
 });
 
-// ฟังก์ชันควบคุมการ ซ่อน/แสดง ช่องเลือกเลขโต๊ะ และช่องที่อยู่เดลิเวอรี่
 function handleOrderTypeChange() {
     const orderStyle = document.getElementById("tableNumber")?.value || "";
     const tableInput = document.getElementById("actualTableNum");
     const deliveryBox = document.getElementById("deliveryFields");
+    const takeoutBox = document.getElementById("takeoutFields"); // ดึงกล่องห่อกลับบ้าน
     
     if (tableInput) tableInput.style.display = "none";
     if (deliveryBox) deliveryBox.style.display = "none";
+    if (takeoutBox) takeoutBox.style.display = "none"; // ปิดไว้ก่อนในค่าแรกเริ่ม
     
     if (orderStyle.includes("ทานที่ร้าน")) {
         if (tableInput) tableInput.style.display = "block"; 
@@ -1780,7 +1790,19 @@ function handleOrderTypeChange() {
         if (orderStyle.includes("จัดส่ง")) {
             if (deliveryBox) deliveryBox.style.display = "block"; 
         }
+        // 🔥 เพิ่มเงื่อนไข: ถ้าเลือกห่อกลับบ้าน ให้เปิดกล่องห่อกลับบ้านโชว์ขึ้นมา
+        else if (orderStyle.includes("ห่อกลับบ้าน")) {
+            if (takeoutBox) takeoutBox.style.display = "block";
+        }
     }
+    
+    // ล้างค่าเบอร์โทรและหมายเหตุของห่อกลับบ้านหากสลับไปเมนูอื่น
+    if (!orderStyle.includes("ห่อกลับบ้าน")) {
+        if (document.getElementById("takeoutPhone")) document.getElementById("takeoutPhone").value = "";
+        if (document.getElementById("takeoutNote")) document.getElementById("takeoutNote").value = "";
+    }
+    
+    validateOrderStatus();
 }
 
 // ==========================================
@@ -2176,8 +2198,13 @@ function validateOrderStatus() {
                 if (addrInput && phoneInput && addrInput.value.trim() !== "" && phoneInput.value.trim() !== "") {
                     isFormValid = true; 
                 }
-            } else if (currentStyle.includes("ห่อกลับบ้าน")) {
-                isFormValid = true; 
+            } 
+            // 🔥 เปลี่ยนเงื่อนไขห่อกลับบ้าน: ต้องกรอกเบอร์โทรศัพท์ด้วยถึงจะยอมให้กดสั่งอาหาร
+            else if (currentStyle.includes("ห่อกลับบ้าน")) {
+                const takeoutPhoneInput = document.getElementById("takeoutPhone");
+                if (takeoutPhoneInput && takeoutPhoneInput.value.trim() !== "") {
+                    isFormValid = true; 
+                }
             }
         }
 
@@ -2322,9 +2349,6 @@ function sendOrderToKitchen() {
         orderType = "ทานที่ร้าน";
         const selectedTableVal = document.getElementById("actualTableNum") ? document.getElementById("actualTableNum").value : "";
         tableName = selectedTableVal ? "โต๊ะ " + selectedTableVal : "ไม่ได้ระบุโต๊ะ";
-    } else if (orderStyle === "ห่อกลับบ้าน") {
-        orderType = "ห่อกลับบ้าน";
-        tableName = "🛍️ ห่อกลับบ้าน";
     } else if (orderStyle === "จัดส่งถึงบ้าน" || orderStyle === "จัดส่ง") {
         orderType = "จัดส่ง";
         tableName = "🚚 จัดส่งถึงบ้าน";
@@ -2344,6 +2368,30 @@ function sendOrderToKitchen() {
             });
             return;
         }
+    }
+    // 🔥 เพิ่มเงื่อนไข: ดึงข้อมูลเบอร์โทร และ นำหมายเหตุไปพ่วงไว้กับหัวข้อรายละเอียดสั่งห่อกลับบ้าน
+    else if (orderStyle === "ห่อกลับบ้าน") {
+        orderType = "ห่อกลับบ้าน";
+        
+        const tPhoneInput = document.getElementById("takeoutPhone");
+        const tNoteInput = document.getElementById("takeoutNote");
+        
+        deliveryPhone = tPhoneInput ? tPhoneInput.value.trim() : "";
+        var takeoutNoteVal = tNoteInput ? tNoteInput.value.trim() : "";
+        
+        if (!deliveryPhone) {
+            Swal.fire({
+                title: 'กรุณากรอกเบอร์โทร',
+                text: 'กรุณาระบุเบอร์โทรศัพท์สำหรับติดต่อกลับตอนมารับอาหารด้วยจ้า',
+                icon: 'warning',
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#ff3131'
+            });
+            return;
+        }
+        
+        // แนบหมายเหตุพ่วงไปกับรายละเอียดรูปแบบ
+        tableName = "🛍️ ห่อกลับบ้าน" + (takeoutNoteVal ? ` (หมายเหตุ: ${takeoutNoteVal})` : "");
     }
 
     if (document.getElementById("summaryCustomer") && document.getElementById("summaryCustomer").innerText !== "") {
@@ -2402,7 +2450,6 @@ function sendOrderToKitchen() {
         totalCost: totalCost
     };
 
-    // 🎯 เจาะจงเลือกปุ่มด้วยคลาสที่ถูกต้องบนป๊อปอัพหน้าสรุปออเดอร์
     var confirmBtn = document.querySelector(".btn-m-confirm");
     if (confirmBtn) {
         confirmBtn.innerText = "⏳ กำลังส่งออเดอร์...";
